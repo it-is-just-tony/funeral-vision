@@ -1,4 +1,4 @@
-# Solana PnL Tracker
+# Funeral Vision
 
 A powerful, self-hosted application for tracking profit and loss on Solana wallet trades. Analyze any wallet's trading performance, identify profitable patterns, and simulate what it would be like to copy-trade specific wallets.
 
@@ -150,8 +150,8 @@ sol/
 **1. Clone the repository**
 
 ```bash
-git clone https://github.com/yourusername/solana-pnl-tracker.git
-cd solana-pnl-tracker
+git clone https://github.com/it-is-just-tony/funeral-vision.git
+cd funeral-vision
 ```
 
 **2. Install dependencies**

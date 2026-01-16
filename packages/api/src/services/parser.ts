@@ -7,7 +7,7 @@ import {
   WSOL_MINT,
   DEX_PROGRAM_IDS,
   INTERMEDIATE_TOKENS,
-} from '@solana-pnl/shared';
+} from '@funeral-vision/shared';
 
 /**
  * Parse trades from Helius Enhanced Transactions

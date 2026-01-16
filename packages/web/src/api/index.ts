@@ -1,4 +1,4 @@
-import type { PnLSummary, Timeframe, Trade, Position, WalletProfile, WalletRanking } from '@solana-pnl/shared';
+import type { PnLSummary, Timeframe, Trade, Position, WalletProfile, WalletRanking } from '@funeral-vision/shared';
 
 const API_BASE = '/api';
 
@@ -27,8 +27,8 @@ export interface WalletStatus {
   totalTransactions: number;
 }
 
-export type { WalletProfile } from '@solana-pnl/shared';
-export type { WalletRanking } from '@solana-pnl/shared';
+export type { WalletProfile } from '@funeral-vision/shared';
+export type { WalletRanking } from '@funeral-vision/shared';
 
 /**
  * Analyze a wallet and get PnL summary
@@ -199,7 +199,7 @@ export async function calculateFollowScores(params: {
 
 // ============ CATALOG API ============
 
-import type { CatalogWallet, WalletImportPayload, AggregatedStats } from '@solana-pnl/shared';
+import type { CatalogWallet, WalletImportPayload, AggregatedStats } from '@funeral-vision/shared';
 
 export interface ImportResult {
   imported: number;

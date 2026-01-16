@@ -1,4 +1,4 @@
-import type { PnLSummary } from '@solana-pnl/shared';
+import type { PnLSummary } from '@funeral-vision/shared';
 
 interface PnLSummaryCardsProps {
   data?: PnLSummary;

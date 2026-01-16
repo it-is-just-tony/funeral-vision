@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Position } from '@solana-pnl/shared';
+import type { Position } from '@funeral-vision/shared';
 import { getTokenMetadata, type TokenMetadata } from '../api';
 
 interface PositionsTableProps {

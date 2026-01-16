@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Timeframe } from '@solana-pnl/shared';
+import type { Timeframe } from '@funeral-vision/shared';
 import { WalletInput } from './components/WalletInput';
 import { PnLSummaryCards } from './components/PnLSummaryCards';
 import { TradesTable } from './components/TradesTable';

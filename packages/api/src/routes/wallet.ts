@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { PublicKey } from '@solana/web3.js';
-import type { Timeframe, Trade, CatalogWallet, WalletImportPayload, AggregatedStats, WalletPnLBreakdown } from '@solana-pnl/shared';
+import type { Timeframe, Trade, CatalogWallet, WalletImportPayload, AggregatedStats, WalletPnLBreakdown } from '@funeral-vision/shared';
 import { getHeliusService } from '../services/helius.js';
 import { parseEnhancedTransactions } from '../services/parser.js';
 import {

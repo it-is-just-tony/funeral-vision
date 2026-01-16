@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { StatusEvent } from '@solana-pnl/shared';
+import type { StatusEvent } from '@funeral-vision/shared';
 
 // Allow running without Vite env typing complaints
 const API_BASE = (import.meta as any)?.env?.VITE_API_URL || '/api';

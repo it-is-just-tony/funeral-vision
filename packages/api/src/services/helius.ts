@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { Connection, PublicKey, type ConfirmedSignatureInfo } from '@solana/web3.js';
-import type { HeliusEnhancedTransaction } from '@solana-pnl/shared';
+import type { HeliusEnhancedTransaction } from '@funeral-vision/shared';
 
 const HELIUS_API_BASE = 'https://api.helius.xyz';
 const HELIUS_RPC_BASE = 'https://mainnet.helius-rpc.com';

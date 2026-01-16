@@ -1,4 +1,4 @@
-import type { Trade } from '@solana-pnl/shared';
+import type { Trade } from '@funeral-vision/shared';
 import { tradeQueries, followScoreQueries, walletQueries } from '../db/index.js';
 
 // Slippage models - percentage applied to each trade

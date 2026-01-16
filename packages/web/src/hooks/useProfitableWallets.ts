@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { Timeframe } from '@solana-pnl/shared';
+import type { Timeframe } from '@funeral-vision/shared';
 import { getProfitableWallets } from '../api';
 
 export function useProfitableWallets(options: {

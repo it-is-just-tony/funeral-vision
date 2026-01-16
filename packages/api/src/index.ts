@@ -35,5 +35,5 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Solana PnL API running on http://localhost:${PORT}`);
+  console.log(`⚰️ Funeral Vision API running on http://localhost:${PORT}`);
 });

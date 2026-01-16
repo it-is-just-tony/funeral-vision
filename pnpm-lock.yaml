@@ -14,7 +14,7 @@ importers:
 
   packages/api:
     dependencies:
-      '@solana-pnl/shared':
+      '@funeral-vision/shared':
         specifier: workspace:*
         version: link:../shared
       '@solana/web3.js':
@@ -63,7 +63,7 @@ importers:
 
   packages/web:
     dependencies:
-      '@solana-pnl/shared':
+      '@funeral-vision/shared':
         specifier: workspace:*
         version: link:../shared
       '@tanstack/react-query':

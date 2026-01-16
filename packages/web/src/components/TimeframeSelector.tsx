@@ -1,4 +1,4 @@
-import type { Timeframe } from '@solana-pnl/shared';
+import type { Timeframe } from '@funeral-vision/shared';
 
 interface TimeframeSelectorProps {
   value: Timeframe;

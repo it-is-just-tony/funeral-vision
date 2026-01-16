@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { Timeframe } from '@solana-pnl/shared';
+import type { Timeframe } from '@funeral-vision/shared';
 import { analyzeWallet } from '../api';
 
 export function useWalletPnL(address: string, timeframe: Timeframe = 'all') {

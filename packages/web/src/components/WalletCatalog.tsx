@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { CatalogWallet, Timeframe, AggregatedStats } from '@solana-pnl/shared';
+import type { CatalogWallet, Timeframe, AggregatedStats } from '@funeral-vision/shared';
 import {
   getCatalogWallets,
   importWallets,
   deleteWallet,
-  bulkAnalyzeWallets,
   refreshSelectedWallets,
   updateWalletMetadata,
   calculateFollowScores,
@@ -16,7 +15,7 @@ interface WalletCatalogProps {
   onSelectWallet: (address: string) => void;
 }
 
-const STORAGE_KEY = 'solana-pnl-selected-wallets';
+const STORAGE_KEY = 'funeral-vision-selected-wallets';
 
 function formatSOL(value: number | undefined | null): string {
   if (value === undefined || value === null) return '-';
@@ -45,7 +44,6 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importJson, setImportJson] = useState('');
   const [importError, setImportError] = useState('');
@@ -214,20 +212,6 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
     } finally {
       setIsRefreshing(false);
       setRefreshProgress(null);
-    }
-  };
-
-  const handleAnalyzeSelected = async () => {
-    if (selectedAddresses.size === 0) return;
-    
-    setIsAnalyzing(true);
-    try {
-      const stats = await bulkAnalyzeWallets([...selectedAddresses], timeframe);
-      setAggregatedStats(stats);
-    } catch (err) {
-      console.error('Failed to analyze wallets:', err);
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 

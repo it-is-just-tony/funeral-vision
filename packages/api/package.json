@@ -1,5 +1,5 @@
 {
-  "name": "@solana-pnl/api",
+  "name": "@funeral-vision/api",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@solana-pnl/shared": "workspace:*",
+    "@funeral-vision/shared": "workspace:*",
     "@solana/web3.js": "^1.91.0",
     "axios": "^1.6.0",
     "better-sqlite3": "^11.0.0",

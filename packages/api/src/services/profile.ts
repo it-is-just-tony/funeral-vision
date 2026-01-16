@@ -1,4 +1,4 @@
-import type { Trade, WalletProfile } from '@solana-pnl/shared';
+import type { Trade, WalletProfile } from '@funeral-vision/shared';
 import { tokenLaunchQueries } from '../db/index.js';
 import { getTradesForWallet } from './pnl.js';
 

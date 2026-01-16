@@ -1,4 +1,4 @@
-// Shared types for Solana PnL Tracker
+// Shared types for Funeral Vision
 
 // ============ Trade Types ============
 

@@ -1,4 +1,4 @@
-import type { Timeframe, WalletRanking } from '@solana-pnl/shared';
+import type { Timeframe, WalletRanking } from '@funeral-vision/shared';
 import { walletQueries, followScoreQueries } from '../db/index.js';
 
 interface RankingOptions {

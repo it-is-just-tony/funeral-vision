@@ -4,7 +4,7 @@ import {
   type PnLSummary,
   type Timeframe,
   TIMEFRAME_SECONDS,
-} from '@solana-pnl/shared';
+} from '@funeral-vision/shared';
 import { tradeQueries, positionQueries, lotQueries, db } from '../db/index.js';
 
 interface CostBasisLot {

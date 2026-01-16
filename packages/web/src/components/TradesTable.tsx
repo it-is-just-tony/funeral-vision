@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Timeframe } from '@solana-pnl/shared';
+import type { Timeframe } from '@funeral-vision/shared';
 import { useTrades } from '../hooks/useTrades';
 
 interface TradesTableProps {

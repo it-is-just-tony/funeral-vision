@@ -1,5 +1,5 @@
 {
-  "name": "@solana-pnl/web",
+  "name": "@funeral-vision/web",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -10,7 +10,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@solana-pnl/shared": "workspace:*",
+    "@funeral-vision/shared": "workspace:*",
     "@tanstack/react-query": "^5.17.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
