@@ -173,6 +173,25 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
     }
   };
 
+  const handleExportWallets = () => {
+    const exportData = wallets.map(w => ({
+      trackedWalletAddress: w.address,
+      name: w.name || '',
+      emoji: w.emoji || '👛',
+      alertsOn: w.alertsOn ?? false,
+    }));
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'funeral-vision-wallets.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const toggleSelection = (address: string) => {
     setSelectedAddresses(prev => {
       const next = new Set(prev);
@@ -260,6 +279,13 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
             className="btn-primary"
           >
             Import Wallets
+          </button>
+          <button
+            onClick={handleExportWallets}
+            className="btn-secondary"
+            disabled={wallets.length === 0}
+          >
+            Export Wallets
           </button>
           <button
             onClick={selectAll}
