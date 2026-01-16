@@ -4,6 +4,20 @@ A powerful, self-hosted application for tracking profit and loss on Solana walle
 
 ---
 
+## Why I Built This
+
+I had a growing list of wallets to watch. The problem? Checking them one by one was killing me.
+
+I looked for solutions. They existed. But they are expensive.
+
+So I did what I had to do - I built my own.
+
+Is it perfect? No. Does it work? Yes.
+
+This is for the degens who'd rather spend money on questionable memecoins than monthly subscriptions. You're welcome.
+
+---
+
 ## Features
 
 | Feature | Description |
