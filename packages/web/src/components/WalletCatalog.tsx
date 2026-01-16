@@ -173,24 +173,37 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
     }
   };
 
-  const handleExportWallets = () => {
-    const exportData = wallets.map(w => ({
+  const exportWallets = (walletsToExport: CatalogWallet[], download: boolean) => {
+    const exportData = walletsToExport.map(w => ({
       trackedWalletAddress: w.address,
       name: w.name || '',
       emoji: w.emoji || '👛',
       alertsOn: w.alertsOn ?? false,
     }));
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'funeral-vision-wallets.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const json = JSON.stringify(exportData, null, 2);
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(json);
+
+    // Download file if requested
+    if (download) {
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'funeral-vision-wallets.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   };
+
+  const handleExportAll = () => exportWallets(wallets, true);
+  const handleCopyAll = () => exportWallets(wallets, false);
+  const handleExportSelected = () => exportWallets(wallets.filter(w => selectedAddresses.has(w.address)), true);
+  const handleCopySelected = () => exportWallets(wallets.filter(w => selectedAddresses.has(w.address)), false);
 
   const toggleSelection = (address: string) => {
     setSelectedAddresses(prev => {
@@ -281,11 +294,36 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
             Import Wallets
           </button>
           <button
-            onClick={handleExportWallets}
+            onClick={handleExportAll}
             className="btn-secondary"
             disabled={wallets.length === 0}
+            title="Download JSON file + copy to clipboard"
           >
-            Export Wallets
+            Export All
+          </button>
+          <button
+            onClick={handleCopyAll}
+            className="btn-secondary"
+            disabled={wallets.length === 0}
+            title="Copy to clipboard"
+          >
+            Copy All
+          </button>
+          <button
+            onClick={handleExportSelected}
+            className="btn-secondary"
+            disabled={selectedAddresses.size === 0}
+            title="Download JSON file + copy to clipboard"
+          >
+            Export Selected
+          </button>
+          <button
+            onClick={handleCopySelected}
+            className="btn-secondary"
+            disabled={selectedAddresses.size === 0}
+            title="Copy to clipboard"
+          >
+            Copy Selected
           </button>
           <button
             onClick={selectAll}
