@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Position } from '@funeral-vision/shared';
 import { getTokenMetadata, type TokenMetadata } from '../api';
+
+type CopiedState = Record<string, boolean>;
 
 interface PositionsTableProps {
   positions: Position[];
@@ -21,6 +23,15 @@ function truncateAddress(address: string, chars = 6): string {
 export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
   const [tokenMetadata, setTokenMetadata] = useState<Record<string, TokenMetadata>>({});
   const [metadataLoading, setMetadataLoading] = useState(false);
+  const [copied, setCopied] = useState<CopiedState>({});
+
+  const copyToClipboard = useCallback((mint: string) => {
+    navigator.clipboard.writeText(mint);
+    setCopied(prev => ({ ...prev, [mint]: true }));
+    setTimeout(() => {
+      setCopied(prev => ({ ...prev, [mint]: false }));
+    }, 1500);
+  }, []);
 
   // Fetch token metadata when positions change
   useEffect(() => {
@@ -108,8 +119,8 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                       {meta?.image && (
-                        <img 
-                          src={meta.image} 
+                        <img
+                          src={meta.image}
                           alt={displayName}
                           className="w-6 h-6 rounded-full"
                           onError={(e) => { e.currentTarget.style.display = 'none'; }}
@@ -124,9 +135,14 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
                         >
                           {displayName}
                         </a>
-                        {meta?.name && meta.symbol && (
-                          <span className="text-xs text-gray-500">{truncateAddress(pos.tokenMint, 4)}</span>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(pos.tokenMint)}
+                          className="text-xs text-gray-500 hover:text-gray-300 text-left cursor-pointer transition-colors"
+                          title="Click to copy token address"
+                        >
+                          {copied[pos.tokenMint] ? 'Copied!' : truncateAddress(pos.tokenMint, 4)}
+                        </button>
                       </div>
                     </div>
                   </td>
