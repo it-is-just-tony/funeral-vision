@@ -138,6 +138,92 @@ export class HeliusService {
   }
 
   /**
+   * Fetch transactions using Helius getTransactionsForAddress API
+   * Supports tokenAccounts filter for complete token history
+   * @param tokenAccounts - 'none' (default), 'balanceChanged', or 'all'
+   */
+  async getTransactionsForAddress(
+    address: string,
+    options: {
+      before?: string;
+      until?: string;
+      limit?: number;
+      tokenAccounts?: 'none' | 'balanceChanged' | 'all';
+    } = {}
+  ): Promise<HeliusEnhancedTransaction[]> {
+    await this.rateLimit(600);
+
+    const params = new URLSearchParams();
+    params.set('api-key', this.apiKey);
+    if (options.before) params.set('before', options.before);
+    if (options.until) params.set('until', options.until);
+    if (options.limit) params.set('limit', options.limit.toString());
+    if (options.tokenAccounts && options.tokenAccounts !== 'none') {
+      params.set('tokenAccounts', options.tokenAccounts);
+    }
+
+    const response = await this.withRetry(() =>
+      this.httpClient.get<HeliusEnhancedTransaction[]>(
+        `/v0/addresses/${address}/transactions?${params.toString()}`
+      )
+    );
+
+    return response.data || [];
+  }
+
+  /**
+   * Fetch ALL transactions for a wallet using Helius getTransactionsForAddress
+   * Supports tokenAccounts filter for complete token history
+   */
+  async getAllTransactionsForAddress(
+    address: string,
+    options: {
+      until?: string;
+      maxTransactions?: number;
+      tokenAccounts?: 'none' | 'balanceChanged' | 'all';
+      onProgress?: (count: number) => void;
+    } = {}
+  ): Promise<HeliusEnhancedTransaction[]> {
+    const allTransactions: HeliusEnhancedTransaction[] = [];
+    let lastSignature: string | undefined = undefined;
+    const maxTransactions = options.maxTransactions || 10000;
+    const batchLimit = 100; // Helius limit per request
+
+    while (allTransactions.length < maxTransactions) {
+      const batch = await this.getTransactionsForAddress(address, {
+        limit: batchLimit,
+        before: lastSignature,
+        until: options.until,
+        tokenAccounts: options.tokenAccounts,
+      });
+
+      if (batch.length === 0) break;
+
+      // Check if we hit the 'until' signature
+      const untilIndex = options.until
+        ? batch.findIndex(t => t.signature === options.until)
+        : -1;
+
+      if (untilIndex >= 0) {
+        allTransactions.push(...batch.slice(0, untilIndex));
+        break;
+      }
+
+      allTransactions.push(...batch);
+      lastSignature = batch[batch.length - 1].signature;
+
+      if (options.onProgress) {
+        options.onProgress(allTransactions.length);
+      }
+
+      // If we got less than limit, we've reached the end
+      if (batch.length < batchLimit) break;
+    }
+
+    return allTransactions;
+  }
+
+  /**
    * Parse transactions using Helius Enhanced Transactions API
    * Batches up to 100 signatures at once
    */

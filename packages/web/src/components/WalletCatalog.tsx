@@ -54,6 +54,7 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
   const [editingName, setEditingName] = useState('');
   const [editingEmoji, setEditingEmoji] = useState('');
   const [isCalculatingScores, setIsCalculatingScores] = useState(false);
+  const [useTokenAccounts, setUseTokenAccounts] = useState(false);
   const { data: profitableWallets = [], isLoading: isLoadingProfitable, refetch: refetchProfitable } = useProfitableWallets({
     timeframe: '30d',
     minTrades: 1,
@@ -227,18 +228,20 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
 
   const handleRefreshSelected = async (e: React.MouseEvent) => {
     if (selectedAddresses.size === 0) return;
-    
+
     // Hold Shift for full refresh (re-fetch all transactions)
     const forceRefresh = e.shiftKey;
-    
+    const tokenAccounts = useTokenAccounts ? 'balanceChanged' : 'none';
+
     setIsRefreshing(true);
     setRefreshProgress({ current: 0, total: selectedAddresses.size });
-    
+
     try {
-      const result = await refreshSelectedWallets([...selectedAddresses], 'default', forceRefresh);
+      const result = await refreshSelectedWallets([...selectedAddresses], 'default', forceRefresh, tokenAccounts);
       setRefreshProgress(null);
       await loadCatalog();
-      alert(`${forceRefresh ? 'Full refresh' : 'Refreshed'} ${result.successful}/${result.total} wallets`);
+      const modeLabel = useTokenAccounts ? ' [tokenAccounts]' : '';
+      alert(`${forceRefresh ? 'Full refresh' : 'Refreshed'}${modeLabel} ${result.successful}/${result.total} wallets`);
     } catch (err) {
       console.error('Failed to refresh wallets:', err);
     } finally {
@@ -364,6 +367,18 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
             <option value="90d">90 Days</option>
             <option value="all">All Time</option>
           </select>
+          <label
+            className="flex items-center gap-1 text-sm text-gray-400 cursor-pointer"
+            title="Enable Helius tokenAccounts filter to capture more token movements (experimental)"
+          >
+            <input
+              type="checkbox"
+              checked={useTokenAccounts}
+              onChange={(e) => setUseTokenAccounts(e.target.checked)}
+              className="rounded border-gray-600 bg-gray-800"
+            />
+            Token Accounts
+          </label>
           <button
             onClick={handleRefreshSelected}
             className="btn-secondary"
@@ -371,8 +386,8 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
             title="Fetch new transactions. Hold Shift for full re-sync."
           >
             {isRefreshing ? (
-              refreshProgress 
-                ? `🔄 ${refreshProgress.current}/${refreshProgress.total}` 
+              refreshProgress
+                ? `🔄 ${refreshProgress.current}/${refreshProgress.total}`
                 : '🔄 Refreshing...'
             ) : (
               '🔄 Refresh'

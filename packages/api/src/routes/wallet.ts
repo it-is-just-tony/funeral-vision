@@ -69,12 +69,14 @@ function isValidSolanaAddress(address: string): boolean {
 
 /**
  * Sync wallet transactions from Helius
+ * @param tokenAccounts - Enable Helius tokenAccounts filter: 'none' (default/legacy), 'balanceChanged', or 'all'
  */
 async function syncWalletTransactions(
   walletAddress: string,
   userId: string = DEFAULT_USER_ID,
   forceRefresh = false,
-  walletInfo?: { name: string; emoji: string }
+  walletInfo?: { name: string; emoji: string },
+  tokenAccounts: 'none' | 'balanceChanged' | 'all' = 'none'
 ): Promise<{ newTransactions: number; totalTrades: number; pnlSummary?: any }> {
   const helius = getHeliusService();
   
@@ -97,42 +99,69 @@ async function syncWalletTransactions(
     }
   }
 
+  const useTokenAccountsFilter = tokenAccounts !== 'none';
   statusEmitter.info(
-    lastSignature ? `Starting incremental sync` : `Starting full sync`,
+    lastSignature
+      ? `Starting incremental sync${useTokenAccountsFilter ? ` (tokenAccounts: ${tokenAccounts})` : ''}`
+      : `Starting full sync${useTokenAccountsFilter ? ` (tokenAccounts: ${tokenAccounts})` : ''}`,
     walletDisplay
   );
 
   console.log(
-    `Syncing wallet ${walletAddress}${lastSignature ? ` from ${lastSignature}` : ' (full sync)'}`
+    `Syncing wallet ${walletAddress}${lastSignature ? ` from ${lastSignature}` : ' (full sync)'}${useTokenAccountsFilter ? ` [tokenAccounts: ${tokenAccounts}]` : ''}`
   );
 
-  // Fetch new signatures
-  const signatures = await helius.getAllSignaturesForAddress(walletAddress, {
-    until: lastSignature,
-    maxSignatures: 5000,
-    onProgress: (count) => {
-      statusEmitter.progress(`Fetching signatures`, count, count + 100, walletDisplay);
-      console.log(`Fetched ${count} signatures...`);
-    },
-  });
+  let parsedTransactions: any[];
+  let transactionCount: number;
 
-  if (signatures.length === 0) {
+  if (useTokenAccountsFilter) {
+    // New method: Use Helius getTransactionsForAddress with tokenAccounts filter
+    // This returns already-parsed transactions in one step
+    parsedTransactions = await helius.getAllTransactionsForAddress(walletAddress, {
+      until: lastSignature,
+      maxTransactions: 5000,
+      tokenAccounts,
+      onProgress: (count) => {
+        statusEmitter.progress(`Fetching transactions`, count, count + 100, walletDisplay);
+        console.log(`Fetched ${count} transactions...`);
+      },
+    });
+    transactionCount = parsedTransactions.length;
+  } else {
+    // Legacy method: Get signatures first, then parse
+    const signatures = await helius.getAllSignaturesForAddress(walletAddress, {
+      until: lastSignature,
+      maxSignatures: 5000,
+      onProgress: (count) => {
+        statusEmitter.progress(`Fetching signatures`, count, count + 100, walletDisplay);
+        console.log(`Fetched ${count} signatures...`);
+      },
+    });
+
+    if (signatures.length === 0) {
+      statusEmitter.success(`No new transactions found`, walletDisplay);
+      console.log('No new transactions found');
+      return { newTransactions: 0, totalTrades: 0 };
+    }
+
+    statusEmitter.info(`Found ${signatures.length} transactions to parse`, walletDisplay);
+    console.log(`Found ${signatures.length} new transactions, parsing...`);
+
+    const signatureStrings = signatures.map((s) => s.signature);
+    parsedTransactions = await helius.parseAllTransactions(signatureStrings, {
+      onProgress: (parsed, total) => {
+        statusEmitter.progress(`Parsing transactions`, parsed, total, walletDisplay);
+        console.log(`Parsed ${parsed}/${total} transactions...`);
+      },
+    });
+    transactionCount = signatures.length;
+  }
+
+  if (parsedTransactions.length === 0) {
     statusEmitter.success(`No new transactions found`, walletDisplay);
     console.log('No new transactions found');
     return { newTransactions: 0, totalTrades: 0 };
   }
-
-  statusEmitter.info(`Found ${signatures.length} transactions to parse`, walletDisplay);
-  console.log(`Found ${signatures.length} new transactions, parsing...`);
-
-  // Parse transactions in batches
-  const signatureStrings = signatures.map((s) => s.signature);
-  const parsedTransactions = await helius.parseAllTransactions(signatureStrings, {
-    onProgress: (parsed, total) => {
-      statusEmitter.progress(`Parsing transactions`, parsed, total, walletDisplay);
-      console.log(`Parsed ${parsed}/${total} transactions...`);
-    },
-  });
 
   // Extract trades
   const allTrades = parseEnhancedTransactions(parsedTransactions, walletAddress);
@@ -144,10 +173,13 @@ async function syncWalletTransactions(
     // First, ensure wallet record exists (required for foreign keys)
     const existingWallet = walletQueries.getWallet.get(walletAddress, userId) as any;
     // Get the earliest timestamp from new transactions for first_synced_at
-    const earliestNewTimestamp = signatures.reduce((min, s) => {
-      const ts = s.blockTime || 0;
+    const earliestNewTimestamp = parsedTransactions.reduce((min, tx) => {
+      const ts = tx.timestamp || 0;
       return ts > 0 && (min === 0 || ts < min) ? ts : min;
     }, 0);
+
+    // Get the most recent signature (first in the array since they're sorted newest first)
+    const newestSignature = parsedTransactions[0]?.signature ?? lastSignature ?? null;
 
     walletQueries.upsertWallet.run({
       address: walletAddress,
@@ -157,8 +189,8 @@ async function syncWalletTransactions(
       alerts_on: existingWallet?.alerts_on ?? 0,
       last_synced_at: Math.floor(Date.now() / 1000),
       first_synced_at: earliestNewTimestamp || null,
-      last_signature: signatures[0]?.signature ?? lastSignature ?? null,
-      total_transactions: (existingWallet?.total_transactions ?? 0) + signatures.length,
+      last_signature: newestSignature,
+      total_transactions: (existingWallet?.total_transactions ?? 0) + transactionCount,
       total_realized_pnl: null,
       win_rate: null,
       total_sol_volume: null,
@@ -169,16 +201,14 @@ async function syncWalletTransactions(
     });
 
     // Save raw transactions
-    for (let i = 0; i < signatures.length; i++) {
-      const sig = signatures[i];
-      const parsed = parsedTransactions.find((p) => p.signature === sig.signature);
+    for (const tx of parsedTransactions) {
       txQueries.insertTransaction.run({
-        signature: sig.signature,
+        signature: tx.signature,
         wallet_address: walletAddress,
-        timestamp: sig.blockTime || 0,
-        block_slot: sig.slot,
-        raw_data: JSON.stringify(parsed || {}),
-        parsed: parsed ? 1 : 0,
+        timestamp: tx.timestamp || 0,
+        block_slot: tx.slot || 0,
+        raw_data: JSON.stringify(tx || {}),
+        parsed: 1,
       });
     }
 
@@ -220,8 +250,8 @@ async function syncWalletTransactions(
     user_id: userId,
     last_synced_at: Math.floor(Date.now() / 1000),
     first_synced_at: earliestTradeTimestamp,
-    last_signature: signatures[0]?.signature ?? lastSignature ?? null,
-    total_transactions: (walletQueries.getWallet.get(walletAddress, userId) as any)?.total_transactions ?? signatures.length,
+    last_signature: parsedTransactions[0]?.signature ?? lastSignature ?? null,
+    total_transactions: (walletQueries.getWallet.get(walletAddress, userId) as any)?.total_transactions ?? transactionCount,
     total_realized_pnl: pnlSummary.totalRealizedPnL ?? null,
     win_rate: pnlSummary.winRate ?? null,
     total_sol_volume: pnlSummary.totalSolVolume ?? null,
@@ -237,7 +267,7 @@ async function syncWalletTransactions(
     { totalTrades: allTrades.length, pnl: pnlSummary.totalRealizedPnL }
   );
 
-  return { newTransactions: signatures.length, totalTrades: allTrades.length, pnlSummary };
+  return { newTransactions: transactionCount, totalTrades: allTrades.length, pnlSummary };
 }
 
 /**
@@ -971,10 +1001,11 @@ walletRouter.post('/catalog/bulk-analyze', async (req: Request, res: Response) =
  */
 walletRouter.post('/catalog/refresh-selected', async (req: Request, res: Response) => {
   try {
-    const { addresses, userId = DEFAULT_USER_ID, forceRefresh = false } = req.body as {
+    const { addresses, userId = DEFAULT_USER_ID, forceRefresh = false, tokenAccounts = 'none' } = req.body as {
       addresses: string[];
       userId?: string;
       forceRefresh?: boolean;
+      tokenAccounts?: 'none' | 'balanceChanged' | 'all';
     };
 
     if (!Array.isArray(addresses) || addresses.length === 0) {
@@ -1010,8 +1041,8 @@ walletRouter.post('/catalog/refresh-selected', async (req: Request, res: Respons
           walletDisplay
         );
         
-        console.log(`Refreshing ${i + 1}/${addresses.length}: ${address}${forceRefresh ? ' (full)' : ''})`);
-        const result = await syncWalletTransactions(address, userId, forceRefresh, walletDisplay);
+        console.log(`Refreshing ${i + 1}/${addresses.length}: ${address}${forceRefresh ? ' (full)' : ''}${tokenAccounts !== 'none' ? ` [tokenAccounts: ${tokenAccounts}]` : ''}`);
+        const result = await syncWalletTransactions(address, userId, forceRefresh, walletDisplay, tokenAccounts);
         results.push({ 
           address, 
           success: true, 
