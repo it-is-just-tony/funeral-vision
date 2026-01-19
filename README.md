@@ -33,17 +33,20 @@ This is for the degens who'd rather spend money on questionable memecoins than m
 
 ## Screenshots
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Simulated Follows                        [Calculate Scores]    │
-├─────────────────────────────────────────────────────────────────┤
-│  Wallet      Sim.PnL  Actual PnL  Follow Score  Win Rate  Exit  │
-│  ────────────────────────────────────────────────────────────── │
-│  Trader1     +42.5    +51.2       83%           72%       4.2m  │
-│  Whale99     +38.1    +89.4       43%           68%       45s   │
-│  Degen.sol   +12.3    +15.8       78%           81%       8.1m  │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Wallet Catalog
+Track all your wallets in one place with PnL, win rate, and sync status.
+
+![Wallet Catalog](ss_catalogue.png)
+
+### Simulated Follows
+Analyze which wallets are actually worth following with realistic copy-trade simulation.
+
+![Simulated Follows](ss_simulatedFollows.png)
+
+### Single Wallet Analysis
+Deep dive into any wallet's positions, trades, and performance metrics.
+
+![Single Wallet Analysis](ss_singleWallet.png)
 
 ---
 
