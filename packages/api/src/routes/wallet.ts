@@ -69,14 +69,14 @@ function isValidSolanaAddress(address: string): boolean {
 
 /**
  * Sync wallet transactions from Helius
- * @param tokenAccounts - Enable Helius tokenAccounts filter: 'none' (default/legacy), 'balanceChanged', or 'all'
+ * @param tokenAccounts - Helius tokenAccounts filter: 'balanceChanged' (default), 'none' (legacy), or 'all'
  */
 async function syncWalletTransactions(
   walletAddress: string,
   userId: string = DEFAULT_USER_ID,
   forceRefresh = false,
   walletInfo?: { name: string; emoji: string },
-  tokenAccounts: 'none' | 'balanceChanged' | 'all' = 'none'
+  tokenAccounts: 'none' | 'balanceChanged' | 'all' = 'balanceChanged'
 ): Promise<{ newTransactions: number; totalTrades: number; pnlSummary?: any }> {
   const helius = getHeliusService();
   
@@ -1001,7 +1001,7 @@ walletRouter.post('/catalog/bulk-analyze', async (req: Request, res: Response) =
  */
 walletRouter.post('/catalog/refresh-selected', async (req: Request, res: Response) => {
   try {
-    const { addresses, userId = DEFAULT_USER_ID, forceRefresh = false, tokenAccounts = 'none' } = req.body as {
+    const { addresses, userId = DEFAULT_USER_ID, forceRefresh = false, tokenAccounts = 'balanceChanged' } = req.body as {
       addresses: string[];
       userId?: string;
       forceRefresh?: boolean;

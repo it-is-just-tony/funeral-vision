@@ -50,7 +50,6 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
   const [editingAddress, setEditingAddress] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingEmoji, setEditingEmoji] = useState('');
-  const [useTokenAccounts, setUseTokenAccounts] = useState(false);
 
   // Persist selection to localStorage
   useEffect(() => {
@@ -207,17 +206,16 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
 
     // Hold Shift for full refresh (re-fetch all transactions)
     const forceRefresh = e.shiftKey;
-    const tokenAccounts = useTokenAccounts ? 'balanceChanged' : 'none';
 
     setIsRefreshing(true);
     setRefreshProgress({ current: 0, total: selectedAddresses.size });
 
     try {
-      const result = await refreshSelectedWallets([...selectedAddresses], 'default', forceRefresh, tokenAccounts);
+      // Always use 'balanceChanged' tokenAccounts filter for complete token history
+      const result = await refreshSelectedWallets([...selectedAddresses], 'default', forceRefresh, 'balanceChanged');
       setRefreshProgress(null);
       await loadCatalog();
-      const modeLabel = useTokenAccounts ? ' [tokenAccounts]' : '';
-      alert(`${forceRefresh ? 'Full refresh' : 'Refreshed'}${modeLabel} ${result.successful}/${result.total} wallets`);
+      alert(`${forceRefresh ? 'Full refresh' : 'Refreshed'} ${result.successful}/${result.total} wallets`);
     } catch (err) {
       console.error('Failed to refresh wallets:', err);
     } finally {
@@ -335,18 +333,6 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
             <option value="90d">90 Days</option>
             <option value="all">All Time</option>
           </select>
-          <label
-            className="flex items-center gap-1 text-sm text-gray-400 cursor-pointer"
-            title="Enable Helius tokenAccounts filter to capture more token movements (experimental)"
-          >
-            <input
-              type="checkbox"
-              checked={useTokenAccounts}
-              onChange={(e) => setUseTokenAccounts(e.target.checked)}
-              className="rounded border-gray-600 bg-gray-800"
-            />
-            Token Accounts
-          </label>
           <button
             onClick={handleRefreshSelected}
             className="btn-secondary"

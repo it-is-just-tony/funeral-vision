@@ -308,13 +308,13 @@ export async function bulkAnalyzeWallets(
 /**
  * Refresh data for selected wallets
  * @param forceRefresh - If true, re-fetches all transactions. If false (default), only fetches new ones.
- * @param tokenAccounts - Helius tokenAccounts filter: 'none' (default), 'balanceChanged', or 'all'
+ * @param tokenAccounts - Helius tokenAccounts filter: 'balanceChanged' (default), 'none' (legacy), or 'all'
  */
 export async function refreshSelectedWallets(
   addresses: string[],
   userId = 'default',
   forceRefresh = false,
-  tokenAccounts: 'none' | 'balanceChanged' | 'all' = 'none'
+  tokenAccounts: 'none' | 'balanceChanged' | 'all' = 'balanceChanged'
 ): Promise<RefreshResult> {
   const response = await fetch(`${API_BASE}/wallet/catalog/refresh-selected`, {
     method: 'POST',
