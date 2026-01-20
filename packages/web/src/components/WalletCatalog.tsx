@@ -176,10 +176,8 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
     }
   };
 
-  const handleExportAll = () => exportWallets(wallets, true);
-  const handleCopyAll = () => exportWallets(wallets, false);
-  const handleExportSelected = () => exportWallets(wallets.filter(w => selectedAddresses.has(w.address)), true);
-  const handleCopySelected = () => exportWallets(wallets.filter(w => selectedAddresses.has(w.address)), false);
+  const handleExport = () => exportWallets(wallets.filter(w => selectedAddresses.has(w.address)), true);
+  const handleCopy = () => exportWallets(wallets.filter(w => selectedAddresses.has(w.address)), false);
 
   const toggleSelection = (address: string) => {
     setSelectedAddresses(prev => {
@@ -263,36 +261,20 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
             Import Wallets
           </button>
           <button
-            onClick={handleExportAll}
-            className="btn-secondary"
-            disabled={wallets.length === 0}
-            title="Download JSON file + copy to clipboard"
-          >
-            Export All
-          </button>
-          <button
-            onClick={handleCopyAll}
-            className="btn-secondary"
-            disabled={wallets.length === 0}
-            title="Copy to clipboard"
-          >
-            Copy All
-          </button>
-          <button
-            onClick={handleExportSelected}
+            onClick={handleExport}
             className="btn-secondary"
             disabled={selectedAddresses.size === 0}
             title="Download JSON file + copy to clipboard"
           >
-            Export Selected
+            Export
           </button>
           <button
-            onClick={handleCopySelected}
+            onClick={handleCopy}
             className="btn-secondary"
             disabled={selectedAddresses.size === 0}
             title="Copy to clipboard"
           >
-            Copy Selected
+            Copy
           </button>
           <button
             onClick={handleDeleteSelected}
