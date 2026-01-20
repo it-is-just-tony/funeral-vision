@@ -12,6 +12,7 @@ import { WalletProfileCard } from './components/WalletProfile';
 import { useWalletProfile } from './hooks/useWalletProfile';
 import { ProfitableWallets } from './components/ProfitableWallets';
 import { useProfitableWallets } from './hooks/useProfitableWallets';
+import { useCatalogWallet } from './hooks/useCatalogWallet';
 import { calculateFollowScores } from './api';
 
 type ViewMode = 'catalog' | 'simulation' | 'single';
@@ -22,9 +23,13 @@ function App() {
   const [timeframe, setTimeframe] = useState<Timeframe>('all');
   const [activeTab, setActiveTab] = useState<'trades' | 'positions' | 'profile'>('positions');
   const [isCalculatingScores, setIsCalculatingScores] = useState(false);
+  const [isEditingWallet, setIsEditingWallet] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editEmoji, setEditEmoji] = useState('');
 
   const { data, isLoading, error, refetch } = useWalletPnL(walletAddress, timeframe);
   const { data: profile, isLoading: isProfileLoading } = useWalletProfile(walletAddress);
+  const { wallet: catalogWallet, updateMeta } = useCatalogWallet(walletAddress);
   const { data: profitableWallets = [], isLoading: isLoadingProfitable, refetch: refetchProfitable } = useProfitableWallets({
     timeframe: '30d',
     minTrades: 1,
@@ -54,6 +59,30 @@ function App() {
       setIsCalculatingScores(false);
     }
   }, [refetchProfitable]);
+
+  const startEditingWallet = () => {
+    setEditName(catalogWallet?.name || '');
+    setEditEmoji(catalogWallet?.emoji || '👛');
+    setIsEditingWallet(true);
+  };
+
+  const cancelEditingWallet = () => {
+    setIsEditingWallet(false);
+    setEditName('');
+    setEditEmoji('');
+  };
+
+  const saveWalletMeta = async () => {
+    try {
+      await updateMeta({
+        name: editName.trim() || undefined,
+        emoji: editEmoji.trim() || undefined,
+      });
+      setIsEditingWallet(false);
+    } catch (err) {
+      console.error('Failed to update wallet metadata:', err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-solana-dark">
@@ -145,6 +174,55 @@ function App() {
                 initialValue={walletAddress}
               />
             </div>
+
+            {/* Wallet Name Header - shows when wallet is selected and in catalog */}
+            {walletAddress && catalogWallet && (
+              <div className="mb-6 flex items-center gap-3">
+                {isEditingWallet ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={editEmoji}
+                      onChange={(e) => setEditEmoji(e.target.value)}
+                      className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-2xl text-center"
+                      maxLength={2}
+                    />
+                    <input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-64 bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-lg"
+                      placeholder="Wallet name"
+                      autoFocus
+                    />
+                    <button
+                      onClick={saveWalletMeta}
+                      className="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded text-sm font-medium transition-colors"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={cancelEditingWallet}
+                      className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">{catalogWallet.emoji || '👛'}</span>
+                    <h2 className="text-2xl font-semibold text-white">
+                      {catalogWallet.name || 'Unnamed Wallet'}
+                    </h2>
+                    <button
+                      onClick={startEditingWallet}
+                      className="text-gray-500 hover:text-blue-400 transition-colors"
+                      title="Edit name and emoji"
+                    >
+                      ✏️
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Error Display */}
             {error && (
