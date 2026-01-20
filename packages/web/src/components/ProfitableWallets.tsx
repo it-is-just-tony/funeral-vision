@@ -52,7 +52,6 @@ function formatDuration(seconds: number | undefined): string {
 }
 
 export function ProfitableWallets({ wallets, isLoading, onSelect, onCalculateScores, isCalculating }: Props) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [showExplainer, setShowExplainer] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn>('simulatedPnL');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -91,18 +90,23 @@ export function ProfitableWallets({ wallets, isLoading, onSelect, onCalculateSco
   };
 
   return (
-    <div className="bg-gray-900/60 border border-gray-800 rounded-lg p-4">
-      <div className="flex items-center justify-between mb-3">
-        <button
-          type="button"
-          onClick={() => setIsCollapsed((prev) => !prev)}
-          className="flex items-center gap-2 text-lg font-semibold text-white hover:text-gray-200"
-          aria-expanded={!isCollapsed}
-        >
-          <span className="text-gray-400">{isCollapsed ? '▸' : '▾'}</span>
-          Simulated follows
-        </button>
-        <div className="flex items-center gap-2">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-white">Follow Simulation</h2>
+          <p className="text-sm text-gray-400 mt-1">
+            Simulate following wallets with realistic delays and slippage.{' '}
+            <button
+              type="button"
+              onClick={() => setShowExplainer(!showExplainer)}
+              className="text-blue-400 hover:text-blue-300 underline"
+            >
+              How is this calculated?
+            </button>
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
           {isLoading && <span className="text-sm text-gray-400">Loading...</span>}
           {onCalculateScores && (
             <button
@@ -111,161 +115,153 @@ export function ProfitableWallets({ wallets, isLoading, onSelect, onCalculateSco
               disabled={isCalculating}
               className="btn-primary"
             >
-              {isCalculating ? 'Calculating...' : hasFollowScores ? 'Recalculate' : 'Calculate Scores'}
+              {isCalculating ? 'Calculating...' : hasFollowScores ? 'Recalculate Scores' : 'Calculate Scores'}
             </button>
           )}
         </div>
       </div>
 
-      {!isCollapsed && (
-        <>
-          <div className="text-sm text-gray-400 mb-3 flex items-center gap-2">
-            <span>Click column headers to sort.</span>
-            <button
-              type="button"
-              onClick={() => setShowExplainer(!showExplainer)}
-              className="text-blue-400 hover:text-blue-300 underline"
-            >
-              How is this calculated?
-            </button>
-          </div>
+      {showExplainer && (
+        <div className="p-3 bg-gray-800/80 rounded-lg text-sm text-gray-300 whitespace-pre-line border border-gray-700">
+          {FOLLOW_SCORE_EXPLAINER}
+        </div>
+      )}
 
-          {showExplainer && (
-            <div className="mb-4 p-3 bg-gray-800/80 rounded-lg text-sm text-gray-300 whitespace-pre-line border border-gray-700">
-              {FOLLOW_SCORE_EXPLAINER}
-            </div>
-          )}
+      {/* Table */}
+      <div className="card overflow-hidden p-0">
+        <table className="w-full">
+          <thead className="bg-gray-800/50">
+            <tr>
+              <th className="text-left p-4 text-gray-400 font-medium">Wallet</th>
+              <th className="text-right p-4 text-gray-400 font-medium">
+                <button
+                  type="button"
+                  onClick={() => handleSort('simulatedPnL')}
+                  className="cursor-pointer hover:text-white flex items-center justify-end w-full"
+                  title="Simulated PnL if you followed this wallet (with delay + slippage)"
+                >
+                  Sim. PnL
+                  <SortIndicator column="simulatedPnL" />
+                </button>
+              </th>
+              <th className="text-right p-4 text-gray-400 font-medium">
+                <button
+                  type="button"
+                  onClick={() => handleSort('realizedPnL')}
+                  className="cursor-pointer hover:text-white flex items-center justify-end w-full"
+                  title="Actual PnL the wallet achieved"
+                >
+                  Actual PnL
+                  <SortIndicator column="realizedPnL" />
+                </button>
+              </th>
+              <th className="text-right p-4 text-gray-400 font-medium">
+                <button
+                  type="button"
+                  onClick={() => handleSort('followabilityRatio')}
+                  className="cursor-pointer hover:text-white flex items-center justify-end w-full"
+                  title="Follow Score = Simulated PnL / Actual PnL. Higher is better."
+                >
+                  Follow Score
+                  <SortIndicator column="followabilityRatio" />
+                </button>
+              </th>
+              <th className="text-right p-4 text-gray-400 font-medium">
+                <button
+                  type="button"
+                  onClick={() => handleSort('winRate')}
+                  className="cursor-pointer hover:text-white flex items-center justify-end w-full"
+                >
+                  Win Rate
+                  <SortIndicator column="winRate" />
+                </button>
+              </th>
+              <th className="text-right p-4 text-gray-400 font-medium">
+                <button
+                  type="button"
+                  onClick={() => handleSort('avgTimeToFirstSellSec')}
+                  className="cursor-pointer hover:text-white flex items-center justify-end w-full"
+                  title="Average time from first buy to first sell"
+                >
+                  Avg Exit
+                  <SortIndicator column="avgTimeToFirstSellSec" />
+                </button>
+              </th>
+              <th className="text-right p-4 text-gray-400 font-medium">
+                <button
+                  type="button"
+                  onClick={() => handleSort('quickDumpRate')}
+                  className="cursor-pointer hover:text-white flex items-center justify-end w-full"
+                  title="% of tokens where first sell was within 60 seconds of first buy. High % = likely farming copytrades."
+                >
+                  Quick Dump
+                  <SortIndicator column="quickDumpRate" />
+                </button>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700">
+            {sortedWallets.length === 0 && !isLoading && (
+              <tr>
+                <td colSpan={7} className="p-8 text-center text-gray-500">
+                  No wallets with trade data yet. Import wallets and sync their data first.
+                </td>
+              </tr>
+            )}
+            {sortedWallets.map((w) => {
+              const isLikelyFarmer = (w.quickDumpRate !== undefined && w.quickDumpRate > 0.3) ||
+                (w.followabilityRatio !== undefined && w.followabilityRatio < 0.2);
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-left">
-              <thead>
-                <tr className="text-gray-400 border-b border-gray-800">
-                  <th className="py-2 pr-3">Wallet</th>
-                  <th className="py-2 pr-3">
-                    <button
-                      type="button"
-                      onClick={() => handleSort('simulatedPnL')}
-                      className="cursor-pointer hover:text-white flex items-center"
-                      title="Simulated PnL if you followed this wallet (with delay + slippage)"
-                    >
-                      Sim. PnL
-                      <SortIndicator column="simulatedPnL" />
-                    </button>
-                  </th>
-                  <th className="py-2 pr-3">
-                    <button
-                      type="button"
-                      onClick={() => handleSort('realizedPnL')}
-                      className="cursor-pointer hover:text-white flex items-center"
-                      title="Actual PnL the wallet achieved"
-                    >
-                      Actual PnL
-                      <SortIndicator column="realizedPnL" />
-                    </button>
-                  </th>
-                  <th className="py-2 pr-3">
-                    <button
-                      type="button"
-                      onClick={() => handleSort('followabilityRatio')}
-                      className="cursor-pointer hover:text-white flex items-center"
-                      title="Follow Score = Simulated PnL / Actual PnL. Higher is better."
-                    >
-                      Follow Score
-                      <SortIndicator column="followabilityRatio" />
-                    </button>
-                  </th>
-                  <th className="py-2 pr-3">
-                    <button
-                      type="button"
-                      onClick={() => handleSort('winRate')}
-                      className="cursor-pointer hover:text-white flex items-center"
-                    >
-                      Win Rate
-                      <SortIndicator column="winRate" />
-                    </button>
-                  </th>
-                  <th className="py-2 pr-3">
-                    <button
-                      type="button"
-                      onClick={() => handleSort('avgTimeToFirstSellSec')}
-                      className="cursor-pointer hover:text-white flex items-center"
-                      title="Average time from first buy to first sell"
-                    >
-                      Avg Exit
-                      <SortIndicator column="avgTimeToFirstSellSec" />
-                    </button>
-                  </th>
-                  <th className="py-2 pr-3">
-                    <button
-                      type="button"
-                      onClick={() => handleSort('quickDumpRate')}
-                      className="cursor-pointer hover:text-white flex items-center"
-                      title="% of tokens where first sell was within 60 seconds of first buy. High % = likely farming copytrades."
-                    >
-                      Quick Dump
-                      <SortIndicator column="quickDumpRate" />
-                    </button>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedWallets.length === 0 && !isLoading && (
-                  <tr>
-                    <td colSpan={7} className="py-4 text-center text-gray-500">
-                      No wallets with trade data yet. Import wallets and sync their data first.
-                    </td>
-                  </tr>
-                )}
-                {sortedWallets.map((w) => {
-                  const isLikelyFarmer = (w.quickDumpRate !== undefined && w.quickDumpRate > 0.3) ||
-                    (w.followabilityRatio !== undefined && w.followabilityRatio < 0.2);
-
-                  return (
-                    <tr
-                      key={w.address}
-                      className={`border-b border-gray-800 hover:bg-gray-800/60 cursor-pointer ${isLikelyFarmer ? 'opacity-60' : ''}`}
-                      onClick={() => onSelect?.(w.address)}
-                    >
-                      <td className="py-2 pr-3 text-white">
-                        <div className="flex items-center gap-2">
-                          <span>{w.emoji || '👛'}</span>
-                          <span className="font-mono">{w.name || w.address.slice(0, 8)}…</span>
+              return (
+                <tr
+                  key={w.address}
+                  className={`hover:bg-gray-800/30 transition-colors cursor-pointer ${isLikelyFarmer ? 'opacity-60' : ''}`}
+                  onClick={() => onSelect?.(w.address)}
+                >
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{w.emoji || '👛'}</span>
+                      <div>
+                        <div className="font-medium text-white flex items-center gap-2">
+                          {w.name || w.address.slice(0, 8)}…
                           {isLikelyFarmer && (
                             <span className="text-xs px-1.5 py-0.5 bg-red-900/50 text-red-400 rounded" title="Likely farming copytrades">
                               ⚠️
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500">{w.address}</div>
-                      </td>
-                      <td className={`py-2 pr-3 font-semibold ${(w.simulatedPnL ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {w.simulatedPnL !== undefined ? w.simulatedPnL.toFixed(2) : '—'}
-                      </td>
-                      <td className="py-2 pr-3 text-gray-300">
-                        {w.realizedPnL.toFixed(2)}
-                      </td>
-                      <td className={`py-2 pr-3 font-semibold ${getFollowScoreColor(w.followabilityRatio)}`}>
-                        {w.followabilityRatio !== undefined ? (
-                          <span title={getFollowScoreLabel(w.followabilityRatio)}>
-                            {(w.followabilityRatio * 100).toFixed(0)}%
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td className="py-2 pr-3 text-gray-200">{w.winRate.toFixed(1)}%</td>
-                      <td className="py-2 pr-3 text-gray-200">
-                        {formatDuration(w.avgTimeToFirstSellSec)}
-                      </td>
-                      <td className={`py-2 pr-3 ${(w.quickDumpRate ?? 0) > 0.3 ? 'text-red-400' : 'text-gray-200'}`}>
-                        {w.quickDumpRate !== undefined ? `${(w.quickDumpRate * 100).toFixed(0)}%` : '—'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
+                        <div className="text-xs text-gray-500 font-mono">{w.address.slice(0, 4)}...{w.address.slice(-4)}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className={`p-4 text-right font-medium ${(w.simulatedPnL ?? 0) >= 0 ? 'pnl-positive' : 'pnl-negative'}`}>
+                    {w.simulatedPnL !== undefined ? `${w.simulatedPnL >= 0 ? '+' : ''}${w.simulatedPnL.toFixed(2)}` : '—'}
+                  </td>
+                  <td className="p-4 text-right text-gray-300">
+                    {w.realizedPnL >= 0 ? '+' : ''}{w.realizedPnL.toFixed(2)}
+                  </td>
+                  <td className={`p-4 text-right font-medium ${getFollowScoreColor(w.followabilityRatio)}`}>
+                    {w.followabilityRatio !== undefined ? (
+                      <span title={getFollowScoreLabel(w.followabilityRatio)}>
+                        {(w.followabilityRatio * 100).toFixed(0)}%
+                      </span>
+                    ) : '—'}
+                  </td>
+                  <td className={`p-4 text-right ${w.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+                    {w.winRate.toFixed(1)}%
+                  </td>
+                  <td className="p-4 text-right text-gray-300">
+                    {formatDuration(w.avgTimeToFirstSellSec)}
+                  </td>
+                  <td className={`p-4 text-right ${(w.quickDumpRate ?? 0) > 0.3 ? 'text-red-400' : 'text-gray-300'}`}>
+                    {w.quickDumpRate !== undefined ? `${(w.quickDumpRate * 100).toFixed(0)}%` : '—'}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
