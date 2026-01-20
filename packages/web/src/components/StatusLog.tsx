@@ -112,25 +112,22 @@ export function StatusLog({
     setMessages([]);
   };
 
-  // Get latest progress message for the minimized view
-  const latestProgress = messages
-    .filter(m => m.type === 'progress')
-    .slice(-1)[0];
-  
   const latestMessage = messages[messages.length - 1];
 
   if (isMinimized) {
+    const showProgress = latestMessage?.type === 'progress' && latestMessage?.progress;
+
     return (
-      <div 
+      <div
         className="fixed bottom-4 right-4 bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-xl cursor-pointer hover:border-gray-600 transition-colors max-w-sm"
         onClick={() => setIsMinimized(false)}
       >
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
           <span className="text-sm text-gray-300">
-            {latestProgress ? (
+            {showProgress ? (
               <>
-                {latestProgress.wallet?.emoji} {latestProgress.progress?.percentage}%
+                {latestMessage.wallet?.emoji} {latestMessage.progress?.percentage}%
               </>
             ) : latestMessage ? (
               <>
@@ -142,12 +139,12 @@ export function StatusLog({
           </span>
           <button className="text-gray-500 hover:text-white ml-auto">⬆️</button>
         </div>
-        
-        {latestProgress?.progress && (
+
+        {showProgress && (
           <div className="mt-2 bg-gray-700 rounded-full h-1.5 overflow-hidden">
-            <div 
+            <div
               className="h-full bg-yellow-500 transition-all duration-300"
-              style={{ width: `${latestProgress.progress.percentage}%` }}
+              style={{ width: `${latestMessage.progress?.percentage}%` }}
             />
           </div>
         )}
@@ -235,19 +232,19 @@ export function StatusLog({
         )}
       </div>
 
-      {/* Footer with latest progress */}
-      {latestProgress?.progress && (
+      {/* Footer with latest progress - only show if most recent message is progress */}
+      {latestMessage?.type === 'progress' && latestMessage?.progress && (
         <div className="px-3 py-2 border-t border-gray-700 bg-gray-800/50">
           <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
             <span className="flex items-center gap-1">
-              {latestProgress.wallet?.emoji} {latestProgress.wallet?.name}
+              {latestMessage.wallet?.emoji} {latestMessage.wallet?.name}
             </span>
-            <span>{latestProgress.progress.percentage}%</span>
+            <span>{latestMessage.progress.percentage}%</span>
           </div>
           <div className="bg-gray-700 rounded-full h-2 overflow-hidden">
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-yellow-500 to-green-500 transition-all duration-300"
-              style={{ width: `${latestProgress.progress.percentage}%` }}
+              style={{ width: `${latestMessage.progress.percentage}%` }}
             />
           </div>
         </div>
