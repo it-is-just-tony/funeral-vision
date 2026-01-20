@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { Timeframe } from '@funeral-vision/shared';
 import { WalletInput } from './components/WalletInput';
 import { PnLSummaryCards } from './components/PnLSummaryCards';
@@ -10,17 +10,28 @@ import { StatusLog } from './components/StatusLog';
 import { useWalletPnL } from './hooks/useWalletPnL';
 import { WalletProfileCard } from './components/WalletProfile';
 import { useWalletProfile } from './hooks/useWalletProfile';
+import { ProfitableWallets } from './components/ProfitableWallets';
+import { useProfitableWallets } from './hooks/useProfitableWallets';
+import { calculateFollowScores } from './api';
 
-type ViewMode = 'catalog' | 'single';
+type ViewMode = 'catalog' | 'simulation' | 'single';
 
 function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('catalog');
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [timeframe, setTimeframe] = useState<Timeframe>('all');
   const [activeTab, setActiveTab] = useState<'trades' | 'positions' | 'profile'>('positions');
+  const [isCalculatingScores, setIsCalculatingScores] = useState(false);
 
   const { data, isLoading, error, refetch } = useWalletPnL(walletAddress, timeframe);
   const { data: profile, isLoading: isProfileLoading } = useWalletProfile(walletAddress);
+  const { data: profitableWallets = [], isLoading: isLoadingProfitable, refetch: refetchProfitable } = useProfitableWallets({
+    timeframe: '30d',
+    minTrades: 1,
+    minVolume: 0,
+    minWinRate: 0,
+    limit: 500,
+  });
 
   const handleSelectWallet = (address: string) => {
     setWalletAddress(address);
@@ -31,6 +42,18 @@ function App() {
     setWalletAddress('');
     setViewMode('catalog');
   };
+
+  const handleCalculateScores = useCallback(async () => {
+    try {
+      setIsCalculatingScores(true);
+      await calculateFollowScores({ delaySeconds: 5, slippageModel: 'moderate' });
+      await refetchProfitable();
+    } catch (err) {
+      console.error('Failed to calculate follow scores:', err);
+    } finally {
+      setIsCalculatingScores(false);
+    }
+  }, [refetchProfitable]);
 
   return (
     <div className="min-h-screen bg-solana-dark">
@@ -57,6 +80,16 @@ function App() {
                   Catalog
                 </button>
                 <button
+                  onClick={() => setViewMode('simulation')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'simulation'
+                      ? 'bg-solana-purple text-white'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Simulation
+                </button>
+                <button
                   onClick={() => setViewMode('single')}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'single'
@@ -77,10 +110,23 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {viewMode === 'catalog' ? (
+        {viewMode === 'catalog' && (
           /* Catalog View */
           <WalletCatalog onSelectWallet={handleSelectWallet} />
-        ) : (
+        )}
+
+        {viewMode === 'simulation' && (
+          /* Simulation View */
+          <ProfitableWallets
+            wallets={profitableWallets}
+            isLoading={isLoadingProfitable}
+            onSelect={handleSelectWallet}
+            onCalculateScores={handleCalculateScores}
+            isCalculating={isCalculatingScores}
+          />
+        )}
+
+        {viewMode === 'single' && (
           /* Single Wallet View */
           <>
             {/* Back to Catalog button */}

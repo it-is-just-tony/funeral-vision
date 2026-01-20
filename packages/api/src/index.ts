@@ -1,11 +1,16 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import cors from 'cors';
 import { walletRouter } from './routes/wallet.js';
 import { initDatabase, backfillBehaviorStats } from './db/index.js';
 import { buildWalletProfile } from './services/profile.js';
 
-dotenv.config();
+// Load .env from repo root (works regardless of cwd)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '../../../');
+dotenv.config({ path: path.join(repoRoot, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;

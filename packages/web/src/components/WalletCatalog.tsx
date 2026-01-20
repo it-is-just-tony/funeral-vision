@@ -6,10 +6,7 @@ import {
   deleteWallet,
   refreshSelectedWallets,
   updateWalletMetadata,
-  calculateFollowScores,
 } from '../api';
-import { useProfitableWallets } from '../hooks/useProfitableWallets';
-import { ProfitableWallets } from './ProfitableWallets';
 
 interface WalletCatalogProps {
   onSelectWallet: (address: string) => void;
@@ -53,15 +50,7 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
   const [editingAddress, setEditingAddress] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [editingEmoji, setEditingEmoji] = useState('');
-  const [isCalculatingScores, setIsCalculatingScores] = useState(false);
   const [useTokenAccounts, setUseTokenAccounts] = useState(false);
-  const { data: profitableWallets = [], isLoading: isLoadingProfitable, refetch: refetchProfitable } = useProfitableWallets({
-    timeframe: '30d',
-    minTrades: 1,
-    minVolume: 0,
-    minWinRate: 0,
-    limit: 500,
-  });
 
   // Persist selection to localStorage
   useEffect(() => {
@@ -83,19 +72,6 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
   useEffect(() => {
     loadCatalog();
   }, [loadCatalog]);
-
-  const handleCalculateScores = useCallback(async () => {
-    try {
-      setIsCalculatingScores(true);
-      await calculateFollowScores({ delaySeconds: 5, slippageModel: 'moderate' });
-      // Refresh the profitable wallets list to show updated scores
-      await refetchProfitable();
-    } catch (err) {
-      console.error('Failed to calculate follow scores:', err);
-    } finally {
-      setIsCalculatingScores(false);
-    }
-  }, [refetchProfitable]);
 
   const handleImport = async () => {
     setImportError('');
@@ -279,14 +255,6 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
 
   return (
     <div className="space-y-6">
-      <ProfitableWallets
-        wallets={profitableWallets}
-        isLoading={isLoadingProfitable}
-        onSelect={onSelectWallet}
-        onCalculateScores={handleCalculateScores}
-        isCalculating={isCalculatingScores}
-      />
-
       {/* Header Actions */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex gap-2">
