@@ -2,22 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Base styles */
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0D1117;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-} 
+}
+
+/* Dark theme (default) */
+:root.dark {
+  color-scheme: dark;
+  --bg-primary: #0D1117;
+  --bg-secondary: #161b22;
+  --bg-card: rgba(31, 41, 55, 0.5);
+  --border-color: #374151;
+  --text-primary: rgba(255, 255, 255, 0.87);
+  --text-secondary: #9ca3af;
+  --scrollbar-track: #1a1a2e;
+  --scrollbar-thumb: #4a4a6a;
+  --scrollbar-hover: #6a6a8a;
+}
+
+/* Light theme */
+:root.light {
+  color-scheme: light;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f3f4f6;
+  --bg-card: rgba(243, 244, 246, 0.8);
+  --border-color: #d1d5db;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --scrollbar-track: #e5e7eb;
+  --scrollbar-thumb: #9ca3af;
+  --scrollbar-hover: #6b7280;
+}
 
 body {
   margin: 0;
   min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 #root {
@@ -31,16 +59,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a2e;
+  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4a4a6a;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #6a6a8a;
+  background: var(--scrollbar-hover);
 }
 
 /* Gradient text */
@@ -51,18 +79,23 @@ body {
   background-clip: text;
 }
 
-/* Card styles */
-.card {
+/* Card styles - dark */
+.dark .card {
   @apply bg-gray-800/50 border border-gray-700 rounded-xl p-6 backdrop-blur-sm;
+}
+
+/* Card styles - light */
+.light .card {
+  @apply bg-white/80 border border-gray-200 rounded-xl p-6 backdrop-blur-sm shadow-sm;
 }
 
 /* Positive/Negative colors */
 .pnl-positive {
-  @apply text-green-400;
+  @apply text-green-600 dark:text-green-400;
 }
 
 .pnl-negative {
-  @apply text-red-400;
+  @apply text-red-600 dark:text-red-400;
 }
 
 /* Button styles */
@@ -70,6 +103,12 @@ body {
   @apply px-4 py-2 bg-gradient-to-r from-solana-purple to-solana-green rounded-lg font-medium text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
-.btn-secondary {
+/* Dark button secondary */
+.dark .btn-secondary {
   @apply px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+/* Light button secondary */
+.light .btn-secondary {
+  @apply px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }

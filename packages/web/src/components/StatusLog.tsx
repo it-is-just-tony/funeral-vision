@@ -119,12 +119,12 @@ export function StatusLog({
 
     return (
       <div
-        className="fixed bottom-4 right-4 bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-xl cursor-pointer hover:border-gray-600 transition-colors max-w-sm"
+        className="fixed bottom-4 right-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-xl cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors max-w-sm"
         onClick={() => setIsMinimized(false)}
       >
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-sm text-gray-300">
+          <span className="text-sm text-gray-700 dark:text-gray-300">
             {showProgress ? (
               <>
                 {latestMessage.wallet?.emoji} {latestMessage.progress?.percentage}%
@@ -137,11 +137,11 @@ export function StatusLog({
               'Status Log'
             )}
           </span>
-          <button className="text-gray-500 hover:text-white ml-auto">⬆️</button>
+          <button className="text-gray-500 hover:text-gray-800 dark:hover:text-white ml-auto">⬆️</button>
         </div>
 
         {showProgress && (
-          <div className="mt-2 bg-gray-700 rounded-full h-1.5 overflow-hidden">
+          <div className="mt-2 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
             <div
               className="h-full bg-yellow-500 transition-all duration-300"
               style={{ width: `${latestMessage.progress?.percentage}%` }}
@@ -153,25 +153,25 @@ export function StatusLog({
   }
 
   return (
-    <div className="fixed bottom-4 right-4 w-96 bg-gray-900 border border-gray-700 rounded-lg shadow-xl flex flex-col max-h-80">
+    <div className="fixed bottom-4 right-4 w-96 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl flex flex-col max-h-80">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700 bg-gray-800 rounded-t-lg">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 rounded-t-lg">
         <div className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
-          <span className="text-sm font-medium text-gray-200">Status Log</span>
+          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Status Log</span>
           <span className="text-xs text-gray-500">({messages.length})</span>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={clearLog}
-            className="text-xs text-gray-500 hover:text-white px-2 py-1 rounded hover:bg-gray-700"
+            className="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-white px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
             title="Clear log"
           >
             🗑️
           </button>
           <button
             onClick={() => setIsMinimized(true)}
-            className="text-xs text-gray-500 hover:text-white px-2 py-1 rounded hover:bg-gray-700"
+            className="text-xs text-gray-500 hover:text-gray-800 dark:hover:text-white px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
             title="Minimize"
           >
             ⬇️
@@ -180,7 +180,7 @@ export function StatusLog({
       </div>
       
       {/* Messages */}
-      <div 
+      <div
         ref={logRef}
         className="flex-1 overflow-y-auto p-2 space-y-1 text-sm"
       >
@@ -190,12 +190,12 @@ export function StatusLog({
           </div>
         ) : (
           messages.map((msg) => (
-            <div 
+            <div
               key={msg.id}
-              className={`flex items-start gap-2 py-1 px-2 rounded hover:bg-gray-800/50 ${getTypeColor(msg.type)}`}
+              className={`flex items-start gap-2 py-1 px-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800/50 ${getTypeColor(msg.type)}`}
             >
               <span className="flex-shrink-0">{getTypeIcon(msg.type)}</span>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   {msg.wallet && (
@@ -205,12 +205,12 @@ export function StatusLog({
                   )}
                   <span className="truncate">{msg.message}</span>
                 </div>
-                
+
                 {/* Progress bar */}
                 {msg.progress && (
                   <div className="mt-1 flex items-center gap-2">
-                    <div className="flex-1 bg-gray-700 rounded-full h-1.5 overflow-hidden">
-                      <div 
+                    <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                      <div
                         className="h-full bg-yellow-500 transition-all duration-300"
                         style={{ width: `${msg.progress.percentage}%` }}
                       />
@@ -221,9 +221,9 @@ export function StatusLog({
                   </div>
                 )}
               </div>
-              
+
               {showTimestamp && (
-                <span className="text-xs text-gray-600 flex-shrink-0">
+                <span className="text-xs text-gray-400 dark:text-gray-600 flex-shrink-0">
                   {formatTime(msg.timestamp)}
                 </span>
               )}
@@ -234,14 +234,14 @@ export function StatusLog({
 
       {/* Footer with latest progress - only show if most recent message is progress */}
       {latestMessage?.type === 'progress' && latestMessage?.progress && (
-        <div className="px-3 py-2 border-t border-gray-700 bg-gray-800/50">
-          <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+        <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/50">
+          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
             <span className="flex items-center gap-1">
               {latestMessage.wallet?.emoji} {latestMessage.wallet?.name}
             </span>
             <span>{latestMessage.progress.percentage}%</span>
           </div>
-          <div className="bg-gray-700 rounded-full h-2 overflow-hidden">
+          <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-yellow-500 to-green-500 transition-all duration-300"
               style={{ width: `${latestMessage.progress.percentage}%` }}

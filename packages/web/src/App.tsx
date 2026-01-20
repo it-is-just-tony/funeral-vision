@@ -13,6 +13,7 @@ import { useWalletProfile } from './hooks/useWalletProfile';
 import { ProfitableWallets } from './components/ProfitableWallets';
 import { useProfitableWallets } from './hooks/useProfitableWallets';
 import { useCatalogWallet } from './hooks/useCatalogWallet';
+import { useTheme } from './hooks/useTheme';
 import { calculateFollowScores } from './api';
 
 type ViewMode = 'catalog' | 'simulation' | 'single';
@@ -27,6 +28,7 @@ function App() {
   const [editName, setEditName] = useState('');
   const [editEmoji, setEditEmoji] = useState('');
 
+  const { toggleTheme, isDark } = useTheme();
   const { data, isLoading, error, refetch } = useWalletPnL(walletAddress, timeframe);
   const { data: profile, isLoading: isProfileLoading } = useWalletProfile(walletAddress);
   const { wallet: catalogWallet, updateMeta } = useCatalogWallet(walletAddress);
@@ -85,25 +87,25 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-solana-dark">
+    <div className={`min-h-screen ${isDark ? 'bg-solana-dark' : 'bg-gray-50'}`}>
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
+      <header className={`border-b sticky top-0 z-10 ${isDark ? 'border-gray-800 bg-gray-900/50' : 'border-gray-200 bg-white/80'} backdrop-blur-sm`}>
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src="/funeralvision.svg" alt="Solana" className="w-24 h-24" />
               <h1 className="text-xl font-bold gradient-text">Funeral Vision</h1>
             </div>
-            
+
             {/* View Mode Toggle */}
             <div className="flex items-center gap-4">
-              <div className="flex bg-gray-800 rounded-lg p-1">
+              <div className={`flex rounded-lg p-1 ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
                 <button
                   onClick={() => setViewMode('catalog')}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'catalog'
                       ? 'bg-solana-purple text-white'
-                      : 'text-gray-400 hover:text-white'
+                      : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   Catalog
@@ -113,7 +115,7 @@ function App() {
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'simulation'
                       ? 'bg-solana-purple text-white'
-                      : 'text-gray-400 hover:text-white'
+                      : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   Simulation
@@ -123,13 +125,23 @@ function App() {
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'single'
                       ? 'bg-solana-purple text-white'
-                      : 'text-gray-400 hover:text-white'
+                      : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >
                   Single Wallet
                 </button>
               </div>
-              <div className="text-sm text-gray-400">
+
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className={`p-2 rounded-lg transition-colors ${isDark ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              >
+                {isDark ? '☀️' : '🌙'}
+              </button>
+
+              <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                 v1.0.0
               </div>
             </div>
@@ -325,8 +337,8 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800 py-6 mt-12">
-        <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
+      <footer className={`border-t py-6 mt-12 ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+        <div className={`max-w-7xl mx-auto px-4 text-center text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
           <p>- Built without motion -</p>
         </div>
       </footer>
