@@ -295,20 +295,6 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
             Copy Selected
           </button>
           <button
-            onClick={selectAll}
-            className="btn-secondary"
-            disabled={wallets.length === 0}
-          >
-            Select All
-          </button>
-          <button
-            onClick={selectNone}
-            className="btn-secondary"
-            disabled={selectedAddresses.size === 0}
-          >
-            Clear Selection
-          </button>
-          <button
             onClick={handleDeleteSelected}
             className="btn-secondary"
             disabled={selectedAddresses.size === 0}
