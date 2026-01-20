@@ -10,6 +10,17 @@ export default defineConfig({
             '/api': {
                 target: "http://localhost:".concat(API_PORT),
                 changeOrigin: true,
+                // Configure proxy to handle SSE properly (no buffering)
+                configure: function (proxy) {
+                    proxy.on('proxyRes', function (proxyRes) {
+                        var _a;
+                        // Disable buffering for SSE responses
+                        if ((_a = proxyRes.headers['content-type']) === null || _a === void 0 ? void 0 : _a.includes('text/event-stream')) {
+                            proxyRes.headers['cache-control'] = 'no-cache';
+                            proxyRes.headers['connection'] = 'keep-alive';
+                        }
+                    });
+                },
             },
         },
     },

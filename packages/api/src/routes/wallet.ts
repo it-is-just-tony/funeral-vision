@@ -26,17 +26,23 @@ const syncInProgress = new Map<string, Promise<void>>();
  * GET /api/wallet/status/events
  */
 walletRouter.get('/status/events', (req: Request, res: Response) => {
+  console.log('SSE client connected');
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering if behind nginx
   res.flushHeaders();
 
   // Send initial connection event
-  res.write(`data: ${JSON.stringify({ id: `connected-${Date.now()}`, type: 'connected', message: 'Connected', timestamp: Date.now() })}\n\n`);
+  const connectedEvent = { id: `connected-${Date.now()}`, type: 'connected', message: 'Connected', timestamp: Date.now() };
+  console.log('Sending connected event:', connectedEvent);
+  res.write(`data: ${JSON.stringify(connectedEvent)}\n\n`);
 
   // Handler for status events
   const statusHandler = (event: StatusEvent) => {
+    console.log('SSE sending event:', event.type, event.message);
     res.write(`data: ${JSON.stringify(event)}\n\n`);
   };
 
@@ -49,6 +55,7 @@ walletRouter.get('/status/events', (req: Request, res: Response) => {
 
   // Cleanup on close
   req.on('close', () => {
+    console.log('SSE client disconnected');
     statusEmitter.off('status', statusHandler);
     clearInterval(heartbeat);
     res.end();
@@ -139,7 +146,7 @@ async function syncWalletTransactions(
     });
 
     if (signatures.length === 0) {
-      statusEmitter.success(`No new transactions found`, walletDisplay);
+      statusEmitter.info(`No new transactions`, walletDisplay);
       console.log('No new transactions found');
       return { newTransactions: 0, totalTrades: 0 };
     }
@@ -158,7 +165,7 @@ async function syncWalletTransactions(
   }
 
   if (parsedTransactions.length === 0) {
-    statusEmitter.success(`No new transactions found`, walletDisplay);
+    statusEmitter.info(`No new transactions`, walletDisplay);
     console.log('No new transactions found');
     return { newTransactions: 0, totalTrades: 0 };
   }
