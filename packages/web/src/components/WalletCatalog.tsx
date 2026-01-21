@@ -240,9 +240,9 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
   if (isLoading) {
     return (
       <div className="card">
-        <div className="animate-pulse space-y-4">
+        <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-gray-700 rounded" />
+            <div key={i} className="h-12 skeleton" />
           ))}
         </div>
       </div>
@@ -287,13 +287,13 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
         </div>
 
         <div className="flex gap-2 items-center">
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-theme-text-secondary">
             {selectedAddresses.size} of {wallets.length} selected
           </span>
           <select
             value={timeframe}
             onChange={(e) => setTimeframe(e.target.value as Timeframe)}
-            className="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm"
+            className="select text-sm"
           >
             <option value="24h">24 Hours</option>
             <option value="7d">7 Days</option>
@@ -329,59 +329,59 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
 
       {/* Aggregated Stats */}
       {aggregatedStats && (
-        <div className="card bg-gradient-to-r from-gray-800 to-gray-900">
+        <div className="card bg-gradient-to-r from-solana-purple/10 to-solana-green/10">
           <h3 className="text-lg font-semibold mb-4">
             📊 Aggregated Stats ({aggregatedStats.totalWallets} wallets)
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
             <div>
-              <div className="text-xs text-gray-400 uppercase">Total PnL</div>
+              <div className="text-xs text-theme-text-secondary uppercase">Total PnL</div>
               <div className={`text-xl font-bold ${aggregatedStats.totalRealizedPnL >= 0 ? 'pnl-positive' : 'pnl-negative'}`}>
                 {aggregatedStats.totalRealizedPnL >= 0 ? '+' : ''}{formatSOL(aggregatedStats.totalRealizedPnL)} SOL
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-400 uppercase">Total Trades</div>
+              <div className="text-xs text-theme-text-secondary uppercase">Total Trades</div>
               <div className="text-xl font-bold">{aggregatedStats.totalTrades.toLocaleString()}</div>
             </div>
             <div>
-              <div className="text-xs text-gray-400 uppercase">Win Rate</div>
-              <div className={`text-xl font-bold ${aggregatedStats.overallWinRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+              <div className="text-xs text-theme-text-secondary uppercase">Win Rate</div>
+              <div className={`text-xl font-bold ${aggregatedStats.overallWinRate >= 50 ? 'pnl-positive' : 'pnl-negative'}`}>
                 {aggregatedStats.overallWinRate.toFixed(1)}%
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-400 uppercase">Volume</div>
+              <div className="text-xs text-theme-text-secondary uppercase">Volume</div>
               <div className="text-xl font-bold">{formatSOL(aggregatedStats.totalSolVolume)} SOL</div>
             </div>
             <div>
-              <div className="text-xs text-gray-400 uppercase">Buys</div>
-              <div className="text-xl font-bold text-blue-400">{aggregatedStats.totalBuys.toLocaleString()}</div>
+              <div className="text-xs text-theme-text-secondary uppercase">Buys</div>
+              <div className="text-xl font-bold text-blue-500 dark:text-blue-400">{aggregatedStats.totalBuys.toLocaleString()}</div>
             </div>
             <div>
-              <div className="text-xs text-gray-400 uppercase">Sells</div>
-              <div className="text-xl font-bold text-purple-400">{aggregatedStats.totalSells.toLocaleString()}</div>
+              <div className="text-xs text-theme-text-secondary uppercase">Sells</div>
+              <div className="text-xl font-bold text-purple-500 dark:text-purple-400">{aggregatedStats.totalSells.toLocaleString()}</div>
             </div>
           </div>
 
           {/* Wallet Breakdown */}
-          <div className="border-t border-gray-700 pt-4">
-            <h4 className="text-sm font-medium text-gray-400 mb-3">Breakdown by Wallet</h4>
+          <div className="border-t divider pt-4">
+            <h4 className="text-sm font-medium text-theme-text-secondary mb-3">Breakdown by Wallet</h4>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {aggregatedStats.walletBreakdown.map((wb) => (
-                <div 
+                <div
                   key={wb.address}
-                  className="flex items-center justify-between p-2 bg-gray-800/50 rounded hover:bg-gray-700/50 cursor-pointer"
+                  className="table-row flex items-center justify-between p-2 rounded cursor-pointer"
                   onClick={() => onSelectWallet(wb.address)}
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-lg">{wb.emoji}</span>
                     <span className="font-medium">{wb.name}</span>
-                    <span className="text-xs text-gray-500">{truncateAddress(wb.address)}</span>
+                    <span className="text-xs text-theme-text-muted">{truncateAddress(wb.address)}</span>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-400">{wb.trades} trades</span>
-                    <span className={`text-sm ${wb.winRate >= 50 ? 'text-green-400' : 'text-red-400'}`}>
+                    <span className="text-sm text-theme-text-secondary">{wb.trades} trades</span>
+                    <span className={`text-sm ${wb.winRate >= 50 ? 'pnl-positive' : 'pnl-negative'}`}>
                       {wb.winRate.toFixed(0)}% WR
                     </span>
                     <span className={`font-medium ${wb.realizedPnL >= 0 ? 'pnl-positive' : 'pnl-negative'}`}>
@@ -393,9 +393,9 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
             </div>
           </div>
 
-          <button 
+          <button
             onClick={() => setAggregatedStats(null)}
-            className="mt-4 text-sm text-gray-400 hover:text-white"
+            className="mt-4 text-sm text-theme-text-secondary hover:text-theme-text-primary"
           >
             ✕ Close stats
           </button>
@@ -407,7 +407,7 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
         <div className="card text-center py-12">
           <div className="text-4xl mb-4">📭</div>
           <h3 className="text-xl font-semibold mb-2">No wallets in catalog</h3>
-          <p className="text-gray-400 mb-4">Import wallets to start tracking their PnL</p>
+          <p className="text-theme-text-secondary mb-4">Import wallets to start tracking their PnL</p>
           <button
             onClick={() => setShowImportModal(true)}
             className="btn-primary"
@@ -418,36 +418,36 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
       ) : (
         <div className="card overflow-hidden p-0">
           <table className="w-full">
-            <thead className="bg-gray-800/50">
+            <thead className="table-header">
               <tr>
                 <th className="w-12 p-4">
                   <input
                     type="checkbox"
                     checked={selectedAddresses.size === wallets.length && wallets.length > 0}
                     onChange={(e) => e.target.checked ? selectAll() : selectNone()}
-                    className="w-4 h-4 rounded"
+                    className="w-4 h-4 rounded accent-solana-purple"
                   />
                 </th>
-                <th className="text-left p-4 text-gray-400 font-medium">Wallet</th>
-                <th className="text-right p-4 text-gray-400 font-medium">PnL</th>
-                <th className="text-right p-4 text-gray-400 font-medium">Win Rate</th>
-                <th className="text-right p-4 text-gray-400 font-medium">Transactions</th>
-                <th className="text-right p-4 text-gray-400 font-medium">Sync Info</th>
+                <th className="text-left p-4">Wallet</th>
+                <th className="text-right p-4">PnL</th>
+                <th className="text-right p-4">Win Rate</th>
+                <th className="text-right p-4">Transactions</th>
+                <th className="text-right p-4">Sync Info</th>
                 <th className="w-24 p-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700">
+            <tbody>
               {wallets.map((wallet) => (
-                <tr 
-                  key={wallet.address} 
-                  className={`hover:bg-gray-800/30 transition-colors ${selectedAddresses.has(wallet.address) ? 'bg-gray-800/20' : ''}`}
+                <tr
+                  key={wallet.address}
+                  className={`table-row ${selectedAddresses.has(wallet.address) ? 'selected' : ''}`}
                 >
                   <td className="p-4">
                     <input
                       type="checkbox"
                       checked={selectedAddresses.has(wallet.address)}
                       onChange={() => toggleSelection(wallet.address)}
-                      className="w-4 h-4 rounded"
+                      className="w-4 h-4 rounded accent-solana-purple"
                     />
                   </td>
                   <td className="p-4">
@@ -456,25 +456,25 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
                         <input
                           value={editingEmoji}
                           onChange={(e) => setEditingEmoji(e.target.value)}
-                          className="w-12 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-center"
+                          className="input w-12 text-sm text-center"
                           maxLength={2}
                         />
                         <input
                           value={editingName}
                           onChange={(e) => setEditingName(e.target.value)}
-                          className="w-48 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm"
+                          className="input w-48 text-sm"
                           placeholder="Wallet name"
                         />
                         <button
                           onClick={saveEditing}
-                          className="text-green-400 hover:text-green-300 text-sm"
+                          className="pnl-positive hover:opacity-80 text-sm"
                           title="Save"
                         >
                           Save
                         </button>
                         <button
                           onClick={cancelEditing}
-                          className="text-gray-400 hover:text-gray-200 text-sm"
+                          className="text-theme-text-secondary hover:text-theme-text-primary text-sm"
                           title="Cancel"
                         >
                           Cancel
@@ -483,12 +483,12 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
                     ) : (
                       <button
                         onClick={() => onSelectWallet(wallet.address)}
-                        className="flex items-center gap-2 hover:text-solana-green transition-colors"
+                        className="flex items-center gap-2 hover:text-solana-purple transition-colors"
                       >
                         <span className="text-xl">{wallet.emoji}</span>
                         <div className="text-left">
                           <div className="font-medium">{wallet.name || 'Unnamed'}</div>
-                          <div className="text-xs text-gray-500 font-mono">{truncateAddress(wallet.address)}</div>
+                          <div className="text-xs text-theme-text-muted font-mono">{truncateAddress(wallet.address)}</div>
                         </div>
                       </button>
                     )}
@@ -499,37 +499,37 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
                         {wallet.totalRealizedPnL >= 0 ? '+' : ''}{formatSOL(wallet.totalRealizedPnL)} SOL
                       </span>
                     ) : (
-                      <span className="text-gray-500">-</span>
+                      <span className="text-theme-text-muted">-</span>
                     )}
                   </td>
                   <td className="p-4 text-right">
                     {wallet.winRate !== undefined && wallet.winRate !== null ? (
-                      <span className={wallet.winRate >= 50 ? 'text-green-400' : 'text-red-400'}>
+                      <span className={wallet.winRate >= 50 ? 'pnl-positive' : 'pnl-negative'}>
                         {wallet.winRate.toFixed(1)}%
                       </span>
                     ) : (
-                      <span className="text-gray-500">-</span>
+                      <span className="text-theme-text-muted">-</span>
                     )}
                   </td>
-                  <td className="p-4 text-right text-gray-300">
+                  <td className="p-4 text-right text-theme-text-secondary">
                     {wallet.totalTransactions.toLocaleString()}
                   </td>
-                  <td className="p-4 text-right text-gray-400 text-sm">
+                  <td className="p-4 text-right text-theme-text-secondary text-sm">
                     <div>Last: {formatDate(wallet.lastSyncedAt)}</div>
-                    <div className="text-xs text-gray-500">First: {formatDate(wallet.firstSyncedAt)}</div>
+                    <div className="text-xs text-theme-text-muted">First: {formatDate(wallet.firstSyncedAt)}</div>
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => startEditing(wallet)}
-                        className="text-gray-500 hover:text-blue-400 transition-colors"
+                        className="text-theme-text-muted hover:text-solana-purple transition-colors"
                         title="Edit name/emoji"
                       >
                         ✏️
                       </button>
                       <button
                         onClick={() => handleDelete(wallet.address)}
-                        className="text-gray-500 hover:text-red-400 transition-colors"
+                        className="text-theme-text-muted hover:text-red-500 transition-colors"
                         title="Remove from catalog"
                       >
                         🗑️
@@ -545,19 +545,19 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
 
       {/* Import Modal */}
       {showImportModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
+          <div className="modal-content max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Import Wallets</h2>
-            
+
             <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-2">
+              <label className="block text-sm text-theme-text-secondary mb-2">
                 Upload JSON file or paste JSON below. Supports export format of most trading terminals.
               </label>
               <input
                 type="file"
                 accept=".json"
                 onChange={handleFileUpload}
-                className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-700 file:text-white hover:file:bg-gray-600"
+                className="block w-full text-sm text-theme-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-solana-purple file:text-white hover:file:opacity-80 file:cursor-pointer"
               />
             </div>
 
@@ -572,11 +572,11 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
     "alertsOn": true
   }
 ]`}
-              className="w-full h-64 bg-gray-900 border border-gray-700 rounded-lg p-4 font-mono text-sm mb-4"
+              className="input w-full h-64 font-mono text-sm mb-4"
             />
 
             {importError && (
-              <div className="text-red-400 text-sm mb-4 p-3 bg-red-900/30 rounded">
+              <div className="error-box text-sm mb-4">
                 {importError}
               </div>
             )}

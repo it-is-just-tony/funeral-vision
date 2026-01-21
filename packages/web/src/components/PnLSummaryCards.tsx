@@ -38,15 +38,15 @@ function StatCard({
 }) {
   return (
     <div className="card">
-      <p className="text-gray-400 text-sm mb-1">{title}</p>
+      <p className="text-theme-text-secondary text-sm mb-1">{title}</p>
       {isLoading ? (
-        <div className="h-8 bg-gray-700 rounded animate-pulse w-24" />
+        <div className="h-8 skeleton w-24" />
       ) : (
         <>
           <p
             className={`text-2xl font-bold ${
               isPositive === undefined
-                ? 'text-white'
+                ? ''
                 : isPositive
                 ? 'pnl-positive'
                 : 'pnl-negative'
@@ -54,7 +54,7 @@ function StatCard({
           >
             {value}
           </p>
-          {subValue && <p className="text-gray-500 text-sm mt-1">{subValue}</p>}
+          {subValue && <p className="text-theme-text-muted text-sm mt-1">{subValue}</p>}
         </>
       )}
     </div>

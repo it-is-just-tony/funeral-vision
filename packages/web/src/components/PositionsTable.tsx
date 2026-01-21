@@ -61,7 +61,7 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
       <div className="card">
         <div className="space-y-4">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-12 bg-gray-700 rounded animate-pulse" />
+            <div key={i} className="h-12 skeleton" />
           ))}
         </div>
       </div>
@@ -70,7 +70,7 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
 
   if (!positions.length) {
     return (
-      <div className="card text-center py-8 text-gray-400">
+      <div className="card text-center py-8 text-theme-text-secondary">
         No positions found
       </div>
     );
@@ -83,20 +83,20 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
     <div className="card overflow-hidden p-0">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-800/50">
+          <thead className="table-header">
             <tr>
-              <th className="text-left p-4 text-gray-400 font-medium">Token</th>
-              <th className="text-right p-4 text-gray-400 font-medium">Realized PnL</th>
-              <th className="text-right p-4 text-gray-400 font-medium">Total Bought</th>
-              <th className="text-right p-4 text-gray-400 font-medium">Total Sold</th>
-              <th className="text-right p-4 text-gray-400 font-medium">Remaining</th>
-              <th className="text-right p-4 text-gray-400 font-medium">Cost Basis</th>
-              <th className="text-right p-4 text-gray-400 font-medium">Proceeds</th>
-              <th className="text-center p-4 text-gray-400 font-medium">Trades</th>
-              <th className="text-center p-4 text-gray-400 font-medium">
+              <th className="text-left p-4">Token</th>
+              <th className="text-right p-4">Realized PnL</th>
+              <th className="text-right p-4">Total Bought</th>
+              <th className="text-right p-4">Total Sold</th>
+              <th className="text-right p-4">Remaining</th>
+              <th className="text-right p-4">Cost Basis</th>
+              <th className="text-right p-4">Proceeds</th>
+              <th className="text-center p-4">Trades</th>
+              <th className="text-center p-4">
                 Win Rate
                 <span
-                  className="ml-1 text-gray-500 cursor-help"
+                  className="ml-1 text-theme-text-muted cursor-help"
                   title="Profitable sells divided by total trades for this token (buys + sells)."
                 >
                   ⓘ
@@ -104,7 +104,7 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-700">
+          <tbody>
             {sortedPositions.map((pos) => {
               const isProfitable = pos.realizedPnL >= 0;
               const winRate =
@@ -115,7 +115,7 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
               const displayName = meta?.symbol || meta?.name || pos.tokenSymbol || truncateAddress(pos.tokenMint, 6);
 
               return (
-                <tr key={pos.tokenMint} className="hover:bg-gray-800/30 transition-colors">
+                <tr key={pos.tokenMint} className="table-row">
                   <td className="p-4">
                     <div className="flex items-center gap-2">
                       {meta?.image && (
@@ -138,7 +138,7 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
                         <button
                           type="button"
                           onClick={() => copyToClipboard(pos.tokenMint)}
-                          className="text-xs text-gray-500 hover:text-gray-300 text-left cursor-pointer transition-colors"
+                          className="text-xs text-theme-text-muted hover:text-theme-text-secondary text-left cursor-pointer transition-colors"
                           title="Click to copy token address"
                         >
                           {copied[pos.tokenMint] ? 'Copied!' : truncateAddress(pos.tokenMint, 4)}
@@ -154,27 +154,25 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
                       {formatSOL(pos.realizedPnL)} SOL
                     </span>
                   </td>
-                  <td className="p-4 text-right text-sm text-gray-300">
+                  <td className="p-4 text-right text-sm text-theme-text-secondary">
                     {pos.totalBought.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </td>
-                  <td className="p-4 text-right text-sm text-gray-300">
+                  <td className="p-4 text-right text-sm text-theme-text-secondary">
                     {pos.totalSold.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </td>
-                  <td className="p-4 text-right text-sm text-gray-300">
+                  <td className="p-4 text-right text-sm text-theme-text-secondary">
                     {pos.remainingTokens.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </td>
-                  <td className="p-4 text-right text-sm text-gray-400">
+                  <td className="p-4 text-right text-sm text-theme-text-muted">
                     {formatSOL(pos.totalCostBasis)} SOL
                   </td>
-                  <td className="p-4 text-right text-sm text-gray-400">
+                  <td className="p-4 text-right text-sm text-theme-text-muted">
                     {formatSOL(pos.totalProceeds)} SOL
                   </td>
-                  <td className="p-4 text-center text-sm text-gray-300">{pos.tradeCount}</td>
+                  <td className="p-4 text-center text-sm text-theme-text-secondary">{pos.tradeCount}</td>
                   <td className="p-4 text-center">
                     <span
-                      className={`text-sm ${
-                        Number(winRate) >= 50 ? 'text-green-400' : 'text-red-400'
-                      }`}
+                      className={`text-sm ${Number(winRate) >= 50 ? 'pnl-positive' : 'pnl-negative'}`}
                     >
                       {winRate}%
                     </span>
@@ -187,11 +185,11 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
       </div>
 
       {/* Summary */}
-      <div className="p-4 border-t border-gray-700 bg-gray-800/30">
+      <div className="p-4 border-t divider bg-theme-bg-hover/30">
         <div className="flex justify-between items-center">
-          <span className="text-gray-400">
+          <span className="text-theme-text-secondary">
             Total Realized PnL:
-            {metadataLoading && <span className="ml-2 text-xs text-gray-500">(loading token names...)</span>}
+            {metadataLoading && <span className="ml-2 text-xs text-theme-text-muted">(loading token names...)</span>}
           </span>
           <span
             className={`text-lg font-bold ${

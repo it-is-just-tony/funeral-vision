@@ -87,9 +87,9 @@ function App() {
   };
 
   return (
-    <div className={`min-h-screen ${isDark ? 'bg-solana-dark' : 'bg-gray-50'}`}>
+    <div className="min-h-screen bg-theme-bg-primary">
       {/* Header */}
-      <header className={`border-b sticky top-0 z-10 ${isDark ? 'border-gray-800 bg-gray-900/50' : 'border-gray-200 bg-white/80'} backdrop-blur-sm`}>
+      <header className="border-b border-theme-border sticky top-0 z-10 bg-theme-bg-secondary/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -99,13 +99,13 @@ function App() {
 
             {/* View Mode Toggle */}
             <div className="flex items-center gap-4">
-              <div className={`flex rounded-lg p-1 ${isDark ? 'bg-gray-800' : 'bg-gray-200'}`}>
+              <div className="flex rounded-lg p-1 bg-theme-bg-hover">
                 <button
                   onClick={() => setViewMode('catalog')}
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'catalog'
                       ? 'bg-solana-purple text-white'
-                      : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                      : 'text-theme-text-secondary hover:text-theme-text-primary'
                   }`}
                 >
                   Catalog
@@ -115,7 +115,7 @@ function App() {
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'simulation'
                       ? 'bg-solana-purple text-white'
-                      : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                      : 'text-theme-text-secondary hover:text-theme-text-primary'
                   }`}
                 >
                   Simulation
@@ -125,7 +125,7 @@ function App() {
                   className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'single'
                       ? 'bg-solana-purple text-white'
-                      : isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                      : 'text-theme-text-secondary hover:text-theme-text-primary'
                   }`}
                 >
                   Single Wallet
@@ -135,13 +135,13 @@ function App() {
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className={`p-2 rounded-lg transition-colors ${isDark ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}
+                className="p-2 rounded-lg transition-colors bg-theme-bg-hover hover:brightness-110"
                 title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {isDark ? '☀️' : '🌙'}
               </button>
 
-              <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="text-sm text-theme-text-secondary">
                 v1.0.0
               </div>
             </div>
@@ -173,7 +173,7 @@ function App() {
             {/* Back to Catalog button */}
             <button
               onClick={handleBackToCatalog}
-              className="mb-4 text-sm text-gray-400 hover:text-white flex items-center gap-1"
+              className="mb-4 text-sm text-theme-text-secondary hover:text-theme-text-primary flex items-center gap-1"
             >
               ← Back to Catalog
             </button>
@@ -195,25 +195,25 @@ function App() {
                     <input
                       value={editEmoji}
                       onChange={(e) => setEditEmoji(e.target.value)}
-                      className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-2xl text-center"
+                      className="input w-14 text-2xl text-center"
                       maxLength={2}
                     />
                     <input
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="w-64 bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-lg"
+                      className="input w-64 text-lg"
                       placeholder="Wallet name"
                       autoFocus
                     />
                     <button
                       onClick={saveWalletMeta}
-                      className="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded text-sm font-medium transition-colors"
+                      className="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded text-sm font-medium text-white transition-colors"
                     >
                       Save
                     </button>
                     <button
                       onClick={cancelEditingWallet}
-                      className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium transition-colors"
+                      className="btn-secondary text-sm py-1.5"
                     >
                       Cancel
                     </button>
@@ -221,12 +221,12 @@ function App() {
                 ) : (
                   <div className="flex items-center gap-3">
                     <span className="text-3xl">{catalogWallet.emoji || '👛'}</span>
-                    <h2 className="text-2xl font-semibold text-white">
+                    <h2 className="text-2xl font-semibold text-theme-text-primary">
                       {catalogWallet.name || 'Unnamed Wallet'}
                     </h2>
                     <button
                       onClick={startEditingWallet}
-                      className="text-gray-500 hover:text-blue-400 transition-colors"
+                      className="text-theme-text-muted hover:text-solana-purple transition-colors"
                       title="Edit name and emoji"
                     >
                       ✏️
@@ -238,9 +238,9 @@ function App() {
 
             {/* Error Display */}
             {error && (
-              <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-400">
+              <div className="mb-6 error-box">
                 <p className="font-medium">Error analyzing wallet</p>
-                <p className="text-sm mt-1">{error.message}</p>
+                <p className="text-sm mt-1 opacity-80">{error.message}</p>
               </div>
             )}
 
@@ -268,35 +268,23 @@ function App() {
                 </div>
 
                 {/* Tabs */}
-                <div className="mb-6 border-b border-gray-700">
+                <div className="mb-6 border-b divider">
                   <div className="flex gap-4">
                     <button
                       onClick={() => setActiveTab('positions')}
-                      className={`pb-3 px-2 font-medium transition-colors ${
-                        activeTab === 'positions'
-                          ? 'text-white border-b-2 border-solana-green'
-                          : 'text-gray-400 hover:text-gray-300'
-                      }`}
+                      className={`tab ${activeTab === 'positions' ? 'active' : ''}`}
                     >
                       Positions ({data?.positions.length || 0})
                     </button>
                     <button
                       onClick={() => setActiveTab('trades')}
-                      className={`pb-3 px-2 font-medium transition-colors ${
-                        activeTab === 'trades'
-                          ? 'text-white border-b-2 border-solana-green'
-                          : 'text-gray-400 hover:text-gray-300'
-                      }`}
+                      className={`tab ${activeTab === 'trades' ? 'active' : ''}`}
                     >
                       Trades ({data?.totalTrades || 0})
                     </button>
                     <button
                       onClick={() => setActiveTab('profile')}
-                      className={`pb-3 px-2 font-medium transition-colors ${
-                        activeTab === 'profile'
-                          ? 'text-white border-b-2 border-solana-green'
-                          : 'text-gray-400 hover:text-gray-300'
-                      }`}
+                      className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
                     >
                       Profile
                     </button>
@@ -323,10 +311,10 @@ function App() {
             {!walletAddress && (
               <div className="text-center py-20">
                 <div className="text-6xl mb-4">📊</div>
-                <h2 className="text-2xl font-bold text-gray-300 mb-2">
+                <h2 className="text-2xl font-bold text-theme-text-secondary mb-2">
                   Analyze Any Solana Wallet
                 </h2>
-                <p className="text-gray-500 max-w-md mx-auto">
+                <p className="text-theme-text-muted max-w-md mx-auto">
                   Enter a wallet address above to see trading performance, PnL breakdown,
                   and detailed trade history. All calculations are done in SOL.
                 </p>
@@ -337,8 +325,8 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className={`border-t py-6 mt-12 ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
-        <div className={`max-w-7xl mx-auto px-4 text-center text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+      <footer className="border-t border-theme-border py-6 mt-12">
+        <div className="max-w-7xl mx-auto px-4 text-center text-sm text-theme-text-muted">
           <p>- Built without motion -</p>
         </div>
       </footer>

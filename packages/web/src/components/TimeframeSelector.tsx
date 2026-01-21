@@ -15,7 +15,7 @@ const timeframes: { value: Timeframe; label: string }[] = [
 
 export function TimeframeSelector({ value, onChange }: TimeframeSelectorProps) {
   return (
-    <div className="flex gap-2 bg-gray-800 p-1 rounded-lg">
+    <div className="flex gap-2 bg-theme-bg-hover p-1 rounded-lg">
       {timeframes.map((tf) => (
         <button
           key={tf.value}
@@ -23,7 +23,7 @@ export function TimeframeSelector({ value, onChange }: TimeframeSelectorProps) {
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             value === tf.value
               ? 'bg-solana-purple text-white'
-              : 'text-gray-400 hover:text-white hover:bg-gray-700'
+              : 'text-theme-text-secondary hover:text-theme-text-primary hover:bg-theme-bg-secondary'
           }`}
         >
           {tf.label}

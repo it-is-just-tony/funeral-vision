@@ -46,7 +46,7 @@ export function WalletInput({ onSubmit, isLoading, initialValue = '' }: WalletIn
             setError('');
           }}
           placeholder="Enter Solana wallet address..."
-          className="w-full px-6 py-4 bg-gray-800 border border-gray-700 rounded-xl text-lg placeholder-gray-500 focus:outline-none focus:border-solana-purple focus:ring-1 focus:ring-solana-purple transition-colors"
+          className="input w-full px-6 py-4 rounded-xl text-lg"
           disabled={isLoading}
         />
         <button
@@ -79,7 +79,7 @@ export function WalletInput({ onSubmit, isLoading, initialValue = '' }: WalletIn
           )}
         </button>
       </div>
-      {error && <p className="mt-2 text-red-400 text-sm">{error}</p>}
+      {error && <p className="mt-2 text-red-600 dark:text-red-400 text-sm">{error}</p>}
     </form>
   );
 }
