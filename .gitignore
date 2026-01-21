@@ -5,6 +5,7 @@ node_modules/
 .claude/
 .codex/
 CLAUDE.md
+CLAUDE_SESSION_CONTEXT.md
 
 # Examples
 examples/
