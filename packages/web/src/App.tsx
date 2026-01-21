@@ -135,10 +135,10 @@ function App() {
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg transition-colors bg-theme-bg-hover hover:brightness-110"
+                className="px-3 py-2 rounded-lg transition-colors bg-theme-bg-hover hover:brightness-110 text-sm"
                 title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               >
-                {isDark ? '☀️' : '🌙'}
+                {isDark ? 'I am a psycho' : 'I am sane'}
               </button>
 
               <div className="text-sm text-theme-text-secondary">
