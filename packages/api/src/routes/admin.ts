@@ -4,6 +4,13 @@ import { userQueries, configQueries, db, listBackups, restoreBackup } from '../d
 import { authenticate, requireRole, requireApproved } from '../middleware/auth.js';
 
 const router = Router();
+const AUTH_DISABLED = process.env.AUTH_DISABLED === 'true';
+
+if (AUTH_DISABLED) {
+  router.use((_req, res) => {
+    res.status(404).json({ success: false, error: 'Admin routes disabled' });
+  });
+}
 
 // All admin routes require authentication and admin/owner role
 router.use(authenticate);

@@ -24,6 +24,7 @@ import PendingApprovalPage from './pages/PendingApprovalPage';
 import AdminPage from './pages/AdminPage';
 
 type ViewMode = 'catalog' | 'simulation' | 'single';
+const AUTH_DISABLED = (import.meta as any)?.env?.VITE_AUTH_DISABLED === 'true';
 
 function Dashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>('catalog');
@@ -151,62 +152,64 @@ function Dashboard() {
               </button>
 
               {/* User Menu */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-theme-bg-hover hover:brightness-110 transition-colors"
-                >
-                  <div className="w-7 h-7 rounded-full bg-solana-purple/30 flex items-center justify-center text-sm font-medium">
-                    {user?.name?.charAt(0).toUpperCase() || '?'}
-                  </div>
-                  <span className="text-sm text-theme-text-secondary hidden sm:inline">
-                    {user?.name || 'User'}
-                  </span>
-                </button>
-
-                {showUserMenu && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowUserMenu(false)}
-                    />
-                    <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-theme-border bg-theme-bg-secondary shadow-lg z-20">
-                      <div className="p-3 border-b border-theme-border">
-                        <p className="text-sm font-medium text-theme-text-primary truncate">
-                          {user?.name}
-                        </p>
-                        <p className="text-xs text-theme-text-muted truncate">
-                          {user?.email}
-                        </p>
-                        {user?.walletLimit !== -1 && (
-                          <p className="text-xs text-theme-text-muted mt-1">
-                            Wallet limit: {user?.walletLimit}
-                          </p>
-                        )}
-                      </div>
-                      <div className="p-1">
-                        {(user?.role === 'admin' || user?.role === 'owner') && (
-                          <a
-                            href="/admin"
-                            className="block w-full px-3 py-2 text-left text-sm text-theme-text-secondary hover:bg-theme-bg-hover rounded transition-colors"
-                          >
-                            Admin Panel
-                          </a>
-                        )}
-                        <button
-                          onClick={() => {
-                            setShowUserMenu(false);
-                            logout();
-                          }}
-                          className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-theme-bg-hover rounded transition-colors"
-                        >
-                          Sign out
-                        </button>
-                      </div>
+              {!AUTH_DISABLED && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-theme-bg-hover hover:brightness-110 transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-solana-purple/30 flex items-center justify-center text-sm font-medium">
+                      {user?.name?.charAt(0).toUpperCase() || '?'}
                     </div>
-                  </>
-                )}
-              </div>
+                    <span className="text-sm text-theme-text-secondary hidden sm:inline">
+                      {user?.name || 'User'}
+                    </span>
+                  </button>
+
+                  {showUserMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setShowUserMenu(false)}
+                      />
+                      <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-theme-border bg-theme-bg-secondary shadow-lg z-20">
+                        <div className="p-3 border-b border-theme-border">
+                          <p className="text-sm font-medium text-theme-text-primary truncate">
+                            {user?.name}
+                          </p>
+                          <p className="text-xs text-theme-text-muted truncate">
+                            {user?.email}
+                          </p>
+                          {user?.walletLimit !== -1 && (
+                            <p className="text-xs text-theme-text-muted mt-1">
+                              Wallet limit: {user?.walletLimit}
+                            </p>
+                          )}
+                        </div>
+                        <div className="p-1">
+                          {(user?.role === 'admin' || user?.role === 'owner') && (
+                            <a
+                              href="/admin"
+                              className="block w-full px-3 py-2 text-left text-sm text-theme-text-secondary hover:bg-theme-bg-hover rounded transition-colors"
+                            >
+                              Admin Panel
+                            </a>
+                          )}
+                          <button
+                            onClick={() => {
+                              setShowUserMenu(false);
+                              logout();
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-theme-bg-hover rounded transition-colors"
+                          >
+                            Sign out
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -403,9 +406,19 @@ function Dashboard() {
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/pending" element={<PendingApprovalPage />} />
+      {AUTH_DISABLED ? (
+        <>
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/register" element={<Navigate to="/" replace />} />
+          <Route path="/pending" element={<Navigate to="/" replace />} />
+        </>
+      ) : (
+        <>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/pending" element={<PendingApprovalPage />} />
+        </>
+      )}
       <Route
         path="/"
         element={
@@ -414,14 +427,16 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute requireRole={['admin', 'owner']}>
-            <AdminPage />
-          </ProtectedRoute>
-        }
-      />
+      {!AUTH_DISABLED && (
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requireRole={['admin', 'owner']}>
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+      )}
       {/* Redirect any unknown routes to home */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

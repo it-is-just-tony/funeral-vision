@@ -30,11 +30,53 @@ interface JwtPayload {
 }
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const AUTH_DISABLED = process.env.AUTH_DISABLED === 'true';
+const LOCAL_USER_ID = 'default';
+
+function ensureLocalUser() {
+  const existing = userQueries.getById.get(LOCAL_USER_ID) as { id: string } | undefined;
+  if (existing) return;
+
+  const now = Date.now();
+  userQueries.create.run({
+    id: LOCAL_USER_ID,
+    email: 'local@funeralvision',
+    password_hash: null,
+    name: 'Local Admin',
+    avatar_url: null,
+    google_id: null,
+    role: 'owner',
+    status: 'approved',
+    wallet_limit: -1,
+    created_at: now,
+    updated_at: now,
+  });
+}
+
+function buildLocalUser(): AuthUser {
+  const walletCountResult = userQueries.getWalletCount.get(LOCAL_USER_ID) as { count: number };
+  return {
+    id: LOCAL_USER_ID,
+    email: 'local@funeralvision',
+    name: 'Local Admin',
+    role: 'owner',
+    status: 'approved',
+    walletLimit: -1,
+    walletCount: walletCountResult.count,
+  };
+}
 
 /**
  * Verify JWT token and attach user to request
  */
 export const authenticate: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
+  if (AUTH_DISABLED) {
+    ensureLocalUser();
+    req.user = buildLocalUser();
+    next();
+    return;
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -93,6 +135,13 @@ export const authenticate: RequestHandler = async (req: Request, res: Response, 
  * Optional authentication - attaches user if token present, but doesn't require it
  */
 export const optionalAuth: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
+  if (AUTH_DISABLED) {
+    ensureLocalUser();
+    req.user = buildLocalUser();
+    next();
+    return;
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -137,6 +186,11 @@ export const optionalAuth: RequestHandler = async (req: Request, res: Response, 
  * Require user to have approved status
  */
 export const requireApproved: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
+  if (AUTH_DISABLED) {
+    next();
+    return;
+  }
+
   if (!req.user) {
     res.status(401).json({ success: false, error: 'Authentication required', code: 'AUTH_REQUIRED' });
     return;
@@ -170,6 +224,11 @@ export const requireApproved: RequestHandler = (req: Request, res: Response, nex
  */
 export const requireRole = (...roles: Array<'user' | 'admin' | 'owner'>): RequestHandler => {
   return (req: Request, res: Response, next: NextFunction) => {
+    if (AUTH_DISABLED) {
+      next();
+      return;
+    }
+
     if (!req.user) {
       res.status(401).json({ success: false, error: 'Authentication required', code: 'AUTH_REQUIRED' });
       return;
@@ -194,6 +253,11 @@ export const requireRole = (...roles: Array<'user' | 'admin' | 'owner'>): Reques
  * Check if user can add more wallets (under their limit)
  */
 export const checkWalletLimit: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
+  if (AUTH_DISABLED) {
+    next();
+    return;
+  }
+
   if (!req.user) {
     res.status(401).json({ success: false, error: 'Authentication required', code: 'AUTH_REQUIRED' });
     return;

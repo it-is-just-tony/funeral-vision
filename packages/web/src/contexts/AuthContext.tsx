@@ -30,6 +30,16 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const API_BASE = '/api/auth';
+const AUTH_DISABLED = (import.meta as any)?.env?.VITE_AUTH_DISABLED === 'true';
+const LOCAL_USER: User = {
+  id: 'default',
+  email: 'local@funeralvision',
+  name: 'Local Admin',
+  role: 'owner',
+  status: 'approved',
+  walletLimit: -1,
+  walletCount: 0,
+};
 
 // Token storage keys
 const ACCESS_TOKEN_KEY = 'fv_access_token';
@@ -38,10 +48,10 @@ const REFRESH_TOKEN_KEY = 'fv_refresh_token';
 export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshInFlight = useRef<Promise<void> | null>(null);
   const [state, setState] = useState<AuthState>({
-    user: null,
+    user: AUTH_DISABLED ? LOCAL_USER : null,
     accessToken: null,
-    isAuthenticated: false,
-    isLoading: true,
+    isAuthenticated: AUTH_DISABLED,
+    isLoading: !AUTH_DISABLED,
   });
 
   // Store tokens
@@ -64,6 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Refresh access token
   const refreshAuth = useCallback(async () => {
+    if (AUTH_DISABLED) {
+      return;
+    }
+
     if (refreshInFlight.current) {
       return refreshInFlight.current;
     }
@@ -124,6 +138,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Login
   const login = useCallback(async (email: string, password: string) => {
+    if (AUTH_DISABLED) {
+      setState({
+        user: LOCAL_USER,
+        accessToken: null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      return;
+    }
+
     const response = await fetch(`${API_BASE}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -147,6 +171,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Register
   const register = useCallback(async (email: string, password: string, name: string) => {
+    if (AUTH_DISABLED) {
+      setState({
+        user: LOCAL_USER,
+        accessToken: null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      return { needsApproval: false };
+    }
+
     const response = await fetch(`${API_BASE}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -177,6 +211,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Logout
   const logout = useCallback(async () => {
+    if (AUTH_DISABLED) {
+      setState({
+        user: LOCAL_USER,
+        accessToken: null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      return;
+    }
+
     const { accessToken, refreshToken } = getStoredTokens();
 
     try {
@@ -205,6 +249,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Set auth state from OAuth callback
   const setAuthFromOAuth = useCallback((accessToken: string, refreshToken: string) => {
+    if (AUTH_DISABLED) {
+      setState({
+        user: LOCAL_USER,
+        accessToken: null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      return;
+    }
+
     storeTokens(accessToken, refreshToken);
     // Trigger refresh to get user data
     refreshAuth();
@@ -212,11 +266,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initialize auth state on mount
   useEffect(() => {
+    if (AUTH_DISABLED) {
+      setState({
+        user: LOCAL_USER,
+        accessToken: null,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      return;
+    }
     refreshAuth();
   }, [refreshAuth]);
 
   // Set up token refresh interval (refresh 1 minute before expiry)
   useEffect(() => {
+    if (AUTH_DISABLED) return;
     if (!state.isAuthenticated) return;
 
     // Refresh every 14 minutes (tokens expire in 15)
@@ -257,6 +321,7 @@ export function useAccessToken() {
   const { accessToken, refreshAuth } = useAuth();
 
   const getToken = useCallback(async () => {
+    if (AUTH_DISABLED) return null;
     if (accessToken) return accessToken;
     await refreshAuth();
     return localStorage.getItem(ACCESS_TOKEN_KEY);

@@ -7,6 +7,8 @@ interface ProtectedRouteProps {
   requireRole?: Array<'user' | 'admin' | 'owner'>;
 }
 
+const AUTH_DISABLED = (import.meta as any)?.env?.VITE_AUTH_DISABLED === 'true';
+
 export default function ProtectedRoute({
   children,
   requireApproval = true,
@@ -14,6 +16,10 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
+
+  if (AUTH_DISABLED) {
+    return <>{children}</>;
+  }
 
   // Show loading state while checking auth
   if (isLoading) {
