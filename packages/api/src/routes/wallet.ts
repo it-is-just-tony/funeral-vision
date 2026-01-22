@@ -8,15 +8,13 @@ import {
   getTradesForWallet,
   getPositionsForWallet,
 } from '../services/pnl.js';
-import { walletQueries, txQueries, tradeQueries, tokenQueries, db } from '../db/index.js';
+import { walletQueries, txQueries, tradeQueries, tokenQueries, userQueries, db } from '../db/index.js';
 import { statusEmitter, type StatusEvent } from '../services/statusEmitter.js';
 import { buildWalletProfile } from '../services/profile.js';
 import { rankProfitableWallets } from '../services/discovery.js';
+import { authenticate, requireApproved, checkWalletLimit } from '../middleware/auth.js';
 
 export const walletRouter = Router();
-
-// Default user ID (for now, single user mode)
-const DEFAULT_USER_ID = 'default';
 
 // Cache for in-progress syncs
 const syncInProgress = new Map<string, Promise<void>>();
@@ -80,7 +78,7 @@ function isValidSolanaAddress(address: string): boolean {
  */
 async function syncWalletTransactions(
   walletAddress: string,
-  userId: string = DEFAULT_USER_ID,
+  userId: string,
   forceRefresh = false,
   walletInfo?: { name: string; emoji: string },
   tokenAccounts: 'none' | 'balanceChanged' | 'all' = 'balanceChanged'
@@ -281,11 +279,12 @@ async function syncWalletTransactions(
  * GET /api/wallet/:address/analyze
  * Sync wallet and return PnL analysis
  */
-walletRouter.get('/:address/analyze', async (req: Request, res: Response) => {
+walletRouter.get('/:address/analyze', authenticate, requireApproved, async (req: Request, res: Response) => {
   try {
     const { address } = req.params;
     const timeframe = (req.query.timeframe as Timeframe) || 'all';
     const forceRefresh = req.query.refresh === 'true';
+    const userId = req.user!.id;
 
     if (!isValidSolanaAddress(address)) {
       res.status(400).json({ success: false, error: 'Invalid Solana address' });
@@ -293,16 +292,17 @@ walletRouter.get('/:address/analyze', async (req: Request, res: Response) => {
     }
 
     // Check if sync is already in progress
-    let syncPromise = syncInProgress.get(address);
+    const syncKey = `${address}:${userId}`;
+    let syncPromise = syncInProgress.get(syncKey);
     if (!syncPromise || forceRefresh) {
-      syncPromise = syncWalletTransactions(address, DEFAULT_USER_ID, forceRefresh)
+      syncPromise = syncWalletTransactions(address, userId, forceRefresh)
         .then((result) => {
           console.log(`Sync complete: ${result.newTransactions} new txs, ${result.totalTrades} trades`);
         })
         .finally(() => {
-          syncInProgress.delete(address);
+          syncInProgress.delete(syncKey);
         });
-      syncInProgress.set(address, syncPromise);
+      syncInProgress.set(syncKey, syncPromise);
     }
 
     await syncPromise;
@@ -421,8 +421,9 @@ walletRouter.get('/:address/profile', async (req: Request, res: Response) => {
  * GET /api/wallet/discovery/profitable
  * Return ranked wallets using cached data only
  */
-walletRouter.get('/discovery/profitable', async (req: Request, res: Response) => {
+walletRouter.get('/discovery/profitable', authenticate, requireApproved, async (req: Request, res: Response) => {
   try {
+    const userId = req.user!.id;
     const timeframe = (req.query.timeframe as Timeframe) || '30d';
     const minTrades = req.query.minTrades ? parseInt(req.query.minTrades as string, 10) : undefined;
     const minVolume = req.query.minVolume ? parseFloat(req.query.minVolume as string) : undefined;
@@ -430,7 +431,7 @@ walletRouter.get('/discovery/profitable', async (req: Request, res: Response) =>
     const minFollowability = req.query.minFollowability ? parseFloat(req.query.minFollowability as string) : undefined;
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 
-    const rankings = rankProfitableWallets({
+    const rankings = rankProfitableWallets(userId, {
       timeframe,
       minTrades,
       minVolume,
@@ -455,15 +456,16 @@ walletRouter.get('/discovery/profitable', async (req: Request, res: Response) =>
  * POST /api/wallet/follow-score/calculate-all
  * Calculate follow scores for all wallets
  */
-walletRouter.post('/follow-score/calculate-all', async (req: Request, res: Response) => {
+walletRouter.post('/follow-score/calculate-all', authenticate, requireApproved, async (req: Request, res: Response) => {
   try {
+    const userId = req.user!.id;
     const { delaySeconds = 5, slippageModel = 'moderate' } = req.body as {
       delaySeconds?: number;
       slippageModel?: 'conservative' | 'moderate' | 'aggressive';
     };
 
     const { scoreAllWallets } = await import('../services/followSimulator.js');
-    const result = scoreAllWallets(delaySeconds, slippageModel);
+    const result = scoreAllWallets(userId, delaySeconds, slippageModel);
 
     res.json({
       success: true,
@@ -491,7 +493,7 @@ walletRouter.post('/follow-score/calculate-all', async (req: Request, res: Respo
  * POST /api/wallet/:address/follow-score
  * Calculate follow score for a single wallet
  */
-walletRouter.post('/:address/follow-score', async (req: Request, res: Response) => {
+walletRouter.post('/:address/follow-score', authenticate, requireApproved, async (req: Request, res: Response) => {
   try {
     const { address } = req.params;
     const { delaySeconds = 5, slippageModel = 'moderate' } = req.body as {
@@ -521,7 +523,7 @@ walletRouter.post('/:address/follow-score', async (req: Request, res: Response) 
  * GET /api/wallet/:address/follow-score
  * Get cached follow score for a wallet
  */
-walletRouter.get('/:address/follow-score', async (req: Request, res: Response) => {
+walletRouter.get('/:address/follow-score', authenticate, requireApproved, async (req: Request, res: Response) => {
   try {
     const { address } = req.params;
 
@@ -711,9 +713,9 @@ walletRouter.post('/tokens/metadata', async (req: Request, res: Response) => {
  * GET /api/wallets
  * Get all wallets in the catalog
  */
-walletRouter.get('/catalog/list', async (req: Request, res: Response) => {
+walletRouter.get('/catalog/list', authenticate, requireApproved, async (req: Request, res: Response) => {
   try {
-    const userId = (req.query.userId as string) || DEFAULT_USER_ID;
+    const userId = req.user!.id;
     const wallets = walletQueries.getAllWallets.all(userId) as any[];
 
     const catalogWallets: CatalogWallet[] = wallets.map(w => ({
@@ -744,16 +746,34 @@ walletRouter.get('/catalog/list', async (req: Request, res: Response) => {
  * POST /api/wallets/import
  * Import wallets from JSON format
  */
-walletRouter.post('/catalog/import', async (req: Request, res: Response) => {
+walletRouter.post('/catalog/import', authenticate, requireApproved, async (req: Request, res: Response) => {
   try {
-    const { wallets, userId = DEFAULT_USER_ID } = req.body as { 
-      wallets: WalletImportPayload[]; 
-      userId?: string;
-    };
+    const { wallets } = req.body as { wallets: WalletImportPayload[] };
+    const userId = req.user!.id;
 
     if (!Array.isArray(wallets) || wallets.length === 0) {
       res.status(400).json({ success: false, error: 'wallets array is required' });
       return;
+    }
+
+    // Check wallet limit
+    const currentCount = (userQueries.getWalletCount.get(userId) as { count: number }).count;
+    const walletLimit = req.user!.walletLimit;
+
+    // -1 means unlimited (owner)
+    if (walletLimit !== -1) {
+      const availableSlots = walletLimit - currentCount;
+      if (wallets.length > availableSlots) {
+        res.status(403).json({
+          success: false,
+          error: `Wallet limit exceeded. You can add ${availableSlots} more wallets (limit: ${walletLimit}).`,
+          code: 'WALLET_LIMIT_EXCEEDED',
+          limit: walletLimit,
+          current: currentCount,
+          requested: wallets.length,
+        });
+        return;
+      }
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -816,10 +836,10 @@ walletRouter.post('/catalog/import', async (req: Request, res: Response) => {
  * DELETE /api/wallets/:address
  * Remove a wallet from the catalog
  */
-walletRouter.delete('/catalog/:address', async (req: Request, res: Response) => {
+walletRouter.delete('/catalog/:address', authenticate, requireApproved, async (req: Request, res: Response) => {
   try {
     const { address } = req.params;
-    const userId = (req.query.userId as string) || DEFAULT_USER_ID;
+    const userId = req.user!.id;
 
     if (!isValidSolanaAddress(address)) {
       res.status(400).json({ success: false, error: 'Invalid Solana address' });
@@ -842,10 +862,10 @@ walletRouter.delete('/catalog/:address', async (req: Request, res: Response) => 
  * PATCH /api/wallets/:address
  * Update wallet metadata
  */
-walletRouter.patch('/catalog/:address', async (req: Request, res: Response) => {
+walletRouter.patch('/catalog/:address', authenticate, requireApproved, async (req: Request, res: Response) => {
   try {
     const { address } = req.params;
-    const userId = (req.query.userId as string) || DEFAULT_USER_ID;
+    const userId = req.user!.id;
     const { name, emoji, alertsOn } = req.body;
 
     if (!isValidSolanaAddress(address)) {
@@ -875,13 +895,13 @@ walletRouter.patch('/catalog/:address', async (req: Request, res: Response) => {
  * POST /api/wallets/bulk-analyze
  * Analyze multiple wallets and return aggregated stats
  */
-walletRouter.post('/catalog/bulk-analyze', async (req: Request, res: Response) => {
+walletRouter.post('/catalog/bulk-analyze', authenticate, requireApproved, async (req: Request, res: Response) => {
   try {
-    const { addresses, timeframe = 'all', userId = DEFAULT_USER_ID } = req.body as {
+    const { addresses, timeframe = 'all' } = req.body as {
       addresses: string[];
       timeframe?: Timeframe;
-      userId?: string;
     };
+    const userId = req.user!.id;
 
     if (!Array.isArray(addresses) || addresses.length === 0) {
       res.status(400).json({ success: false, error: 'addresses array is required' });
@@ -1006,14 +1026,14 @@ walletRouter.post('/catalog/bulk-analyze', async (req: Request, res: Response) =
  * POST /api/wallets/refresh-selected
  * Refresh data for selected wallets with progress
  */
-walletRouter.post('/catalog/refresh-selected', async (req: Request, res: Response) => {
+walletRouter.post('/catalog/refresh-selected', authenticate, requireApproved, async (req: Request, res: Response) => {
   try {
-    const { addresses, userId = DEFAULT_USER_ID, forceRefresh = false, tokenAccounts = 'balanceChanged' } = req.body as {
+    const { addresses, forceRefresh = false, tokenAccounts = 'balanceChanged' } = req.body as {
       addresses: string[];
-      userId?: string;
       forceRefresh?: boolean;
       tokenAccounts?: 'none' | 'balanceChanged' | 'all';
     };
+    const userId = req.user!.id;
 
     if (!Array.isArray(addresses) || addresses.length === 0) {
       res.status(400).json({ success: false, error: 'addresses array is required' });

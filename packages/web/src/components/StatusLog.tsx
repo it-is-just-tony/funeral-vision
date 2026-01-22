@@ -2,7 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { StatusEvent } from '@funeral-vision/shared';
 
 // Allow running without Vite env typing complaints
-const API_BASE = (import.meta as any)?.env?.VITE_API_URL || '/api';
+const RAW_API_BASE = (import.meta as any)?.env?.VITE_API_URL || '/api';
+const API_BASE = RAW_API_BASE.endsWith('/api')
+  ? RAW_API_BASE
+  : `${RAW_API_BASE.replace(/\/$/, '')}/api`;
 
 interface StatusLogProps {
   maxMessages?: number;
@@ -63,13 +66,15 @@ export function StatusLog({
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
+      console.log('SSE connected to:', `${API_BASE}/wallet/status/events`);
       setIsConnected(true);
     };
 
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data) as StatusEvent;
-        
+        console.log('SSE message received:', data.type, data.message);
+
         setMessages(prev => {
           const newMessages = [...prev, data];
           // Keep only the last maxMessages
@@ -83,7 +88,8 @@ export function StatusLog({
       }
     };
 
-    eventSource.onerror = () => {
+    eventSource.onerror = (err) => {
+      console.error('SSE connection error:', err, 'readyState:', eventSource.readyState);
       setIsConnected(false);
       eventSource.close();
       // Reconnect after 3 seconds

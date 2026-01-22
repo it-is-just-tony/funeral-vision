@@ -1,6 +1,22 @@
 import type { PnLSummary, Timeframe, Trade, Position, WalletProfile, WalletRanking } from '@funeral-vision/shared';
 
 const API_BASE = '/api';
+const ACCESS_TOKEN_KEY = 'fv_access_token';
+
+// Get auth headers for API requests
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem(ACCESS_TOKEN_KEY);
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+// Authenticated fetch wrapper
+async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const headers = {
+    ...getAuthHeaders(),
+    ...options.headers,
+  };
+  return fetch(url, { ...options, headers });
+}
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -41,7 +57,7 @@ export async function analyzeWallet(
   const params = new URLSearchParams({ timeframe });
   if (refresh) params.set('refresh', 'true');
 
-  const response = await fetch(`${API_BASE}/wallet/${address}/analyze?${params}`);
+  const response = await authFetch(`${API_BASE}/wallet/${address}/analyze?${params}`);
   const result: ApiResponse<PnLSummary> = await response.json();
 
   if (!result.success || !result.data) {
@@ -66,7 +82,7 @@ export async function getTrades(
     pageSize: pageSize.toString(),
   });
 
-  const response = await fetch(`${API_BASE}/wallet/${address}/trades?${params}`);
+  const response = await authFetch(`${API_BASE}/wallet/${address}/trades?${params}`);
   const result: ApiResponse<TradesResponse> = await response.json();
 
   if (!result.success || !result.data) {
@@ -80,7 +96,7 @@ export async function getTrades(
  * Get positions for a wallet
  */
 export async function getPositions(address: string): Promise<Position[]> {
-  const response = await fetch(`${API_BASE}/wallet/${address}/positions`);
+  const response = await authFetch(`${API_BASE}/wallet/${address}/positions`);
   const result: ApiResponse<PositionsResponse> = await response.json();
 
   if (!result.success || !result.data) {
@@ -94,7 +110,7 @@ export async function getPositions(address: string): Promise<Position[]> {
  * Get wallet sync status
  */
 export async function getWalletStatus(address: string): Promise<WalletStatus> {
-  const response = await fetch(`${API_BASE}/wallet/${address}/status`);
+  const response = await authFetch(`${API_BASE}/wallet/${address}/status`);
   const result: ApiResponse<WalletStatus> = await response.json();
 
   if (!result.success || !result.data) {
@@ -118,7 +134,7 @@ export async function getTokenMetadata(
 ): Promise<Record<string, TokenMetadata>> {
   if (mints.length === 0) return {};
 
-  const response = await fetch(`${API_BASE}/wallet/tokens/metadata`, {
+  const response = await authFetch(`${API_BASE}/wallet/tokens/metadata`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ mints }),
@@ -136,7 +152,7 @@ export async function getTokenMetadata(
  * Get behavior profile for a wallet (offline computation on cached data)
  */
 export async function getWalletProfile(address: string): Promise<WalletProfile> {
-  const response = await fetch(`${API_BASE}/wallet/${address}/profile`);
+  const response = await authFetch(`${API_BASE}/wallet/${address}/profile`);
   const result: ApiResponse<WalletProfile> = await response.json();
 
   if (!result.success || !result.data) {
@@ -163,7 +179,7 @@ export async function getProfitableWallets(params: {
   if (params.minWinRate !== undefined) searchParams.set('minWinRate', String(params.minWinRate));
   if (params.limit !== undefined) searchParams.set('limit', String(params.limit));
 
-  const response = await fetch(`${API_BASE}/wallet/discovery/profitable?${searchParams.toString()}`);
+  const response = await authFetch(`${API_BASE}/wallet/discovery/profitable?${searchParams.toString()}`);
   const result: ApiResponse<WalletRanking[]> = await response.json();
 
   if (!result.success || !result.data) {
@@ -180,7 +196,7 @@ export async function calculateFollowScores(params: {
   delaySeconds?: number;
   slippageModel?: 'conservative' | 'moderate' | 'aggressive';
 } = {}): Promise<{ scored: number }> {
-  const response = await fetch(`${API_BASE}/wallet/follow-score/calculate-all`, {
+  const response = await authFetch(`${API_BASE}/wallet/follow-score/calculate-all`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -217,8 +233,8 @@ export interface RefreshResult {
 /**
  * Get all wallets in the catalog
  */
-export async function getCatalogWallets(userId = 'default'): Promise<CatalogWallet[]> {
-  const response = await fetch(`${API_BASE}/wallet/catalog/list?userId=${userId}`);
+export async function getCatalogWallets(): Promise<CatalogWallet[]> {
+  const response = await authFetch(`${API_BASE}/wallet/catalog/list`);
   const result: ApiResponse<CatalogWallet[]> = await response.json();
 
   if (!result.success || !result.data) {
@@ -232,13 +248,12 @@ export async function getCatalogWallets(userId = 'default'): Promise<CatalogWall
  * Import wallets from JSON format
  */
 export async function importWallets(
-  wallets: WalletImportPayload[],
-  userId = 'default'
+  wallets: WalletImportPayload[]
 ): Promise<ImportResult> {
-  const response = await fetch(`${API_BASE}/wallet/catalog/import`, {
+  const response = await authFetch(`${API_BASE}/wallet/catalog/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ wallets, userId }),
+    body: JSON.stringify({ wallets }),
   });
   const result: ApiResponse<ImportResult> = await response.json();
 
@@ -252,8 +267,8 @@ export async function importWallets(
 /**
  * Delete a wallet from the catalog
  */
-export async function deleteWallet(address: string, userId = 'default'): Promise<void> {
-  const response = await fetch(`${API_BASE}/wallet/catalog/${address}?userId=${userId}`, {
+export async function deleteWallet(address: string): Promise<void> {
+  const response = await authFetch(`${API_BASE}/wallet/catalog/${address}`, {
     method: 'DELETE',
   });
   const result: ApiResponse<{ deleted: string }> = await response.json();
@@ -268,10 +283,9 @@ export async function deleteWallet(address: string, userId = 'default'): Promise
  */
 export async function updateWalletMetadata(
   address: string,
-  data: { name?: string; emoji?: string; alertsOn?: boolean },
-  userId = 'default'
+  data: { name?: string; emoji?: string; alertsOn?: boolean }
 ): Promise<void> {
-  const response = await fetch(`${API_BASE}/wallet/catalog/${address}?userId=${userId}`, {
+  const response = await authFetch(`${API_BASE}/wallet/catalog/${address}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -288,13 +302,12 @@ export async function updateWalletMetadata(
  */
 export async function bulkAnalyzeWallets(
   addresses: string[],
-  timeframe: Timeframe = 'all',
-  userId = 'default'
+  timeframe: Timeframe = 'all'
 ): Promise<AggregatedStats> {
-  const response = await fetch(`${API_BASE}/wallet/catalog/bulk-analyze`, {
+  const response = await authFetch(`${API_BASE}/wallet/catalog/bulk-analyze`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ addresses, timeframe, userId }),
+    body: JSON.stringify({ addresses, timeframe }),
   });
   const result: ApiResponse<AggregatedStats> = await response.json();
 
@@ -312,14 +325,13 @@ export async function bulkAnalyzeWallets(
  */
 export async function refreshSelectedWallets(
   addresses: string[],
-  userId = 'default',
   forceRefresh = false,
   tokenAccounts: 'none' | 'balanceChanged' | 'all' = 'balanceChanged'
 ): Promise<RefreshResult> {
-  const response = await fetch(`${API_BASE}/wallet/catalog/refresh-selected`, {
+  const response = await authFetch(`${API_BASE}/wallet/catalog/refresh-selected`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ addresses, userId, forceRefresh, tokenAccounts }),
+    body: JSON.stringify({ addresses, forceRefresh, tokenAccounts }),
   });
   const result: ApiResponse<RefreshResult> = await response.json();
 

@@ -39,16 +39,19 @@ interface FollowScoreRow {
  * - Followability ratio (simulated PnL / actual PnL)
  * - Quick dump rate (lower is better)
  */
-export function rankProfitableWallets({
-  timeframe = '30d',
-  minTrades = 20,
-  minVolume = 5,
-  minWinRate = 55,
-  minFollowability = 0,  // Default to no filter
-  limit = 20,
-}: RankingOptions = {}): WalletRanking[] {
+export function rankProfitableWallets(
+  userId: string,
+  {
+    timeframe = '30d',
+    minTrades = 20,
+    minVolume = 5,
+    minWinRate = 55,
+    minFollowability = 0,  // Default to no filter
+    limit = 20,
+  }: RankingOptions = {}
+): WalletRanking[] {
   // Pull known wallets with cached stats
-  const walletRows = walletQueries.getAllWallets.all('default') as WalletRow[];
+  const walletRows = walletQueries.getAllWallets.all(userId) as WalletRow[];
 
   // Pull all follow scores into a map for fast lookup
   const followScoreRows = followScoreQueries.getAllScores.all() as FollowScoreRow[];

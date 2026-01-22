@@ -7,6 +7,7 @@ import {
   refreshSelectedWallets,
   updateWalletMetadata,
 } from '../api';
+import { useAuth } from '../contexts/AuthContext';
 
 interface WalletCatalogProps {
   onSelectWallet: (address: string) => void;
@@ -32,6 +33,7 @@ function formatDate(timestamp: number | undefined): string {
 }
 
 export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
+  const { user, updateUser } = useAuth();
   const [wallets, setWallets] = useState<CatalogWallet[]>([]);
   const [selectedAddresses, setSelectedAddresses] = useState<Set<string>>(() => {
     // Load from localStorage
@@ -71,6 +73,12 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
   useEffect(() => {
     loadCatalog();
   }, [loadCatalog]);
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.walletCount === wallets.length) return;
+    updateUser({ ...user, walletCount: wallets.length });
+  }, [user, wallets.length, updateUser]);
 
   const handleImport = async () => {
     setImportError('');
@@ -210,7 +218,7 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
 
     try {
       // Always use 'balanceChanged' tokenAccounts filter for complete token history
-      const result = await refreshSelectedWallets([...selectedAddresses], 'default', forceRefresh, 'balanceChanged');
+      const result = await refreshSelectedWallets([...selectedAddresses], forceRefresh, 'balanceChanged');
       setRefreshProgress(null);
       await loadCatalog();
       alert(`${forceRefresh ? 'Full refresh' : 'Refreshed'} ${result.successful}/${result.total} wallets`);
@@ -287,6 +295,17 @@ export function WalletCatalog({ onSelectWallet }: WalletCatalogProps) {
         </div>
 
         <div className="flex gap-2 items-center">
+          {user && user.walletLimit !== -1 && (
+            <span className={`text-sm px-2 py-0.5 rounded border ${
+              wallets.length >= user.walletLimit
+                ? 'bg-red-500/10 border-red-500/30 text-red-400'
+                : wallets.length >= user.walletLimit * 0.8
+                  ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+                  : 'bg-green-500/10 border-green-500/30 text-green-400'
+            }`}>
+              {wallets.length}/{user.walletLimit} wallets
+            </span>
+          )}
           <span className="text-sm text-theme-text-secondary">
             {selectedAddresses.size} of {wallets.length} selected
           </span>

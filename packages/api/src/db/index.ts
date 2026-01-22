@@ -44,18 +44,192 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
+// Backup directory
+const backupDir = path.join(dataDir, 'backups');
+
+/**
+ * Create a backup of the database before migrations
+ * Keeps the last 5 backups to prevent disk bloat
+ */
+function createBackup(reason: string): string | null {
+  if (!fs.existsSync(DB_PATH)) {
+    return null;
+  }
+
+  // Ensure backup directory exists
+  if (!fs.existsSync(backupDir)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+  }
+
+  // Create timestamped backup filename
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const backupName = `pnl-${timestamp}-${reason}.db`;
+  const backupPath = path.join(backupDir, backupName);
+
+  try {
+    // Copy the database file
+    fs.copyFileSync(DB_PATH, backupPath);
+
+    // Also copy WAL files if they exist
+    const walPath = DB_PATH + '-wal';
+    const shmPath = DB_PATH + '-shm';
+    if (fs.existsSync(walPath)) {
+      fs.copyFileSync(walPath, backupPath + '-wal');
+    }
+    if (fs.existsSync(shmPath)) {
+      fs.copyFileSync(shmPath, backupPath + '-shm');
+    }
+
+    console.log(`💾 Database backup created: ${backupName}`);
+
+    // Clean up old backups, keep last 5
+    const backups = fs.readdirSync(backupDir)
+      .filter(f => f.startsWith('pnl-') && f.endsWith('.db'))
+      .sort()
+      .reverse();
+
+    if (backups.length > 5) {
+      for (const oldBackup of backups.slice(5)) {
+        const oldPath = path.join(backupDir, oldBackup);
+        fs.unlinkSync(oldPath);
+        // Also remove WAL/SHM files if they exist
+        if (fs.existsSync(oldPath + '-wal')) fs.unlinkSync(oldPath + '-wal');
+        if (fs.existsSync(oldPath + '-shm')) fs.unlinkSync(oldPath + '-shm');
+        console.log(`🗑️ Removed old backup: ${oldBackup}`);
+      }
+    }
+
+    return backupPath;
+  } catch (err) {
+    console.error('Failed to create backup:', err);
+    return null;
+  }
+}
+
+/**
+ * List available backups
+ */
+export function listBackups(): { name: string; path: string; size: number; created: Date }[] {
+  if (!fs.existsSync(backupDir)) {
+    return [];
+  }
+
+  return fs.readdirSync(backupDir)
+    .filter(f => f.startsWith('pnl-') && f.endsWith('.db'))
+    .map(name => {
+      const fullPath = path.join(backupDir, name);
+      const stats = fs.statSync(fullPath);
+      return {
+        name,
+        path: fullPath,
+        size: stats.size,
+        created: stats.mtime,
+      };
+    })
+    .sort((a, b) => b.created.getTime() - a.created.getTime());
+}
+
+/**
+ * Restore database from a backup
+ */
+export function restoreBackup(backupPath: string): boolean {
+  if (!fs.existsSync(backupPath)) {
+    console.error('Backup file not found:', backupPath);
+    return false;
+  }
+
+  try {
+    // Create a backup of current state before restoring
+    createBackup('pre-restore');
+
+    // Close the database connection
+    db.close();
+
+    // Restore the backup
+    fs.copyFileSync(backupPath, DB_PATH);
+    if (fs.existsSync(backupPath + '-wal')) {
+      fs.copyFileSync(backupPath + '-wal', DB_PATH + '-wal');
+    }
+    if (fs.existsSync(backupPath + '-shm')) {
+      fs.copyFileSync(backupPath + '-shm', DB_PATH + '-shm');
+    }
+
+    console.log(`✅ Database restored from: ${path.basename(backupPath)}`);
+    console.log('⚠️ Please restart the server for changes to take effect.');
+    return true;
+  } catch (err) {
+    console.error('Failed to restore backup:', err);
+    return false;
+  }
+}
+
 export const db = new Database(DB_PATH);
 
 // Initialize tables immediately
 db.pragma('journal_mode = WAL');
 
+// Migration: Check if old users table exists without auth columns
+// If so, rename it and migrate data after creating new schema
+const tableInfo = db.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+const hasEmailColumn = tableInfo.some(col => col.name === 'email');
+const hasOldUsersTable = tableInfo.length > 0 && !hasEmailColumn;
+
+if (hasOldUsersTable) {
+  // Create backup before migration
+  createBackup('pre-auth-migration');
+  console.log('Migrating old users table to new auth schema...');
+  db.exec(`ALTER TABLE users RENAME TO users_old;`);
+}
+
 db.exec(`
-  -- Users table for multi-user support
+  -- Users table for multi-user support with authentication
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
-    name TEXT,
-    created_at INTEGER NOT NULL
+    email TEXT UNIQUE,
+    password_hash TEXT,
+    name TEXT NOT NULL,
+    avatar_url TEXT,
+    google_id TEXT UNIQUE,
+    role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin', 'owner')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'suspended')),
+    wallet_limit INTEGER NOT NULL DEFAULT 10,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER,
+    approved_at INTEGER,
+    approved_by TEXT,
+    last_login_at INTEGER,
+    FOREIGN KEY (approved_by) REFERENCES users(id)
   );
+
+  -- Refresh tokens for JWT auth
+  CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    token_hash TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    revoked_at INTEGER,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
+  -- App configuration
+  CREATE TABLE IF NOT EXISTS app_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+
+  -- Indexes for auth tables
+  CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+  CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+  CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+  CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
+  CREATE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
+
+  -- Default config values
+  INSERT OR IGNORE INTO app_config (key, value, updated_at) VALUES
+    ('registration_mode', 'approval', strftime('%s', 'now') * 1000),
+    ('default_wallet_limit', '10', strftime('%s', 'now') * 1000);
 
   -- Wallets table for tracking sync state and catalog metadata
   CREATE TABLE IF NOT EXISTS wallets (
@@ -74,8 +248,6 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id)
   );
 
-  -- Ensure default user exists
-  INSERT OR IGNORE INTO users (id, name, created_at) VALUES ('default', 'Default User', strftime('%s', 'now'));
 
   -- Raw transactions cache
   CREATE TABLE IF NOT EXISTS transactions (
@@ -244,6 +416,15 @@ db.exec(`
     ), 0)
   WHERE total_sol_volume IS NULL OR total_sol_volume = 0
 `);
+
+// Migration: Handle old users_old table if it exists (from schema migration)
+// This migrates wallets from the old 'default' user to be available for the new owner
+if (hasOldUsersTable) {
+  // Move wallets from 'default' user to be claimed by first registering user who is owner
+  // For now, we just drop the old table since wallets reference user_id
+  db.exec('DROP TABLE IF EXISTS users_old');
+  console.log('✅ Old users table migration complete - wallets will need to be re-imported');
+}
 
 console.log(`✅ Database initialized at ${DB_PATH}`);
 
@@ -497,4 +678,67 @@ export const followScoreQueries = {
   getAllScores: db.prepare('SELECT * FROM wallet_follow_scores ORDER BY followability_ratio DESC'),
   getTopScores: db.prepare('SELECT * FROM wallet_follow_scores WHERE followability_ratio > 0 ORDER BY followability_ratio DESC LIMIT ?'),
   deleteScore: db.prepare('DELETE FROM wallet_follow_scores WHERE wallet_address = ?'),
+};
+
+// User queries
+export const userQueries = {
+  getById: db.prepare('SELECT * FROM users WHERE id = ?'),
+  getByEmail: db.prepare('SELECT * FROM users WHERE email = ?'),
+  getByGoogleId: db.prepare('SELECT * FROM users WHERE google_id = ?'),
+  getAll: db.prepare('SELECT id, email, name, avatar_url, role, status, wallet_limit, created_at, approved_at, last_login_at FROM users ORDER BY created_at DESC'),
+  getPending: db.prepare('SELECT id, email, name, avatar_url, role, status, wallet_limit, created_at FROM users WHERE status = \'pending\' ORDER BY created_at ASC'),
+  create: db.prepare(`
+    INSERT INTO users (id, email, password_hash, name, avatar_url, google_id, role, status, wallet_limit, created_at, updated_at)
+    VALUES (@id, @email, @password_hash, @name, @avatar_url, @google_id, @role, @status, @wallet_limit, @created_at, @updated_at)
+  `),
+  update: db.prepare(`
+    UPDATE users SET
+      email = COALESCE(@email, email),
+      password_hash = COALESCE(@password_hash, password_hash),
+      name = COALESCE(@name, name),
+      avatar_url = COALESCE(@avatar_url, avatar_url),
+      google_id = COALESCE(@google_id, google_id),
+      role = COALESCE(@role, role),
+      status = COALESCE(@status, status),
+      wallet_limit = COALESCE(@wallet_limit, wallet_limit),
+      updated_at = @updated_at,
+      approved_at = COALESCE(@approved_at, approved_at),
+      approved_by = COALESCE(@approved_by, approved_by),
+      last_login_at = COALESCE(@last_login_at, last_login_at)
+    WHERE id = @id
+  `),
+  updateLastLogin: db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?'),
+  approve: db.prepare(`
+    UPDATE users SET status = 'approved', approved_at = @approved_at, approved_by = @approved_by, updated_at = @updated_at
+    WHERE id = @id
+  `),
+  reject: db.prepare(`
+    UPDATE users SET status = 'rejected', updated_at = ?
+    WHERE id = ?
+  `),
+  delete: db.prepare('DELETE FROM users WHERE id = ? AND role != \'owner\''),
+  getWalletCount: db.prepare('SELECT COUNT(*) as count FROM wallets WHERE user_id = ?'),
+};
+
+// Refresh token queries
+export const refreshTokenQueries = {
+  create: db.prepare(`
+    INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at)
+    VALUES (@id, @user_id, @token_hash, @expires_at, @created_at)
+  `),
+  getByHash: db.prepare('SELECT * FROM refresh_tokens WHERE token_hash = ? AND revoked_at IS NULL AND expires_at > ?'),
+  revoke: db.prepare('UPDATE refresh_tokens SET revoked_at = ? WHERE id = ?'),
+  revokeAllForUser: db.prepare('UPDATE refresh_tokens SET revoked_at = ? WHERE user_id = ?'),
+  deleteExpired: db.prepare('DELETE FROM refresh_tokens WHERE expires_at < ?'),
+};
+
+// App config queries
+export const configQueries = {
+  get: db.prepare('SELECT value FROM app_config WHERE key = ?'),
+  set: db.prepare(`
+    INSERT INTO app_config (key, value, updated_at)
+    VALUES (@key, @value, @updated_at)
+    ON CONFLICT(key) DO UPDATE SET value = @value, updated_at = @updated_at
+  `),
+  getAll: db.prepare('SELECT key, value FROM app_config'),
 };

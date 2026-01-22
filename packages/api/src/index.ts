@@ -3,7 +3,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import cors from 'cors';
+import passport from 'passport';
 import { walletRouter } from './routes/wallet.js';
+import authRouter from './routes/auth.js';
+import adminRouter from './routes/admin.js';
 import { initDatabase, backfillBehaviorStats } from './db/index.js';
 import { buildWalletProfile } from './services/profile.js';
 
@@ -18,6 +21,7 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(passport.initialize());
 
 // Initialize database
 initDatabase();
@@ -26,6 +30,8 @@ initDatabase();
 backfillBehaviorStats(buildWalletProfile);
 
 // Routes
+app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 app.use('/api/wallet', walletRouter);
 
 // Health check

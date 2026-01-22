@@ -29,27 +29,29 @@ export function parseEnhancedTransaction(
     return [];
   }
 
-  // Method 1: Parse from token transfers - best for multi-hop swaps
-  const transferTrades = parseFromTransfers(tx, walletAddress);
-  if (transferTrades.length > 0) {
-    return transferTrades;
-  }
+  const trades: Trade[] = [];
+  const seen = new Set<string>();
 
-  // Method 2: Parse from accountData balance changes
-  const balanceChangeTrades = parseFromBalanceChanges(tx, walletAddress);
-  if (balanceChangeTrades.length > 0) {
-    return balanceChangeTrades;
-  }
+  const addTrades = (next: Trade[]) => {
+    for (const trade of next) {
+      if (seen.has(trade.id)) continue;
+      seen.add(trade.id);
+      trades.push(trade);
+    }
+  };
+
+  // Method 1: Parse from token transfers - best for multi-hop swaps
+  addTrades(parseFromTransfers(tx, walletAddress));
+
+  // Method 2: Parse from accountData balance changes (fills in missing side)
+  addTrades(parseFromBalanceChanges(tx, walletAddress));
 
   // Method 3: Parse from swap event (often incomplete for multi-hop)
   if (tx.events?.swap) {
-    const swapTrades = parseFromSwapEvent(tx, walletAddress);
-    if (swapTrades.length > 0) {
-      return swapTrades;
-    }
+    addTrades(parseFromSwapEvent(tx, walletAddress));
   }
 
-  return [];
+  return trades;
 }
 
 /**

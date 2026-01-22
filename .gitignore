@@ -42,3 +42,9 @@ Thumbs.db
 
 # Testing
 coverage/
+
+# Video (Remotion)
+packages/video/out/
+*.mp4
+*.webm
+*.mov

@@ -113,6 +113,7 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
                   : '0';
               const meta = tokenMetadata[pos.tokenMint];
               const displayName = meta?.symbol || meta?.name || pos.tokenSymbol || truncateAddress(pos.tokenMint, 6);
+              const showAllTimeCostBasis = pos.prePeriod && pos.totalCostBasis === 0 && pos.allTimeCostBasis !== undefined;
 
               return (
                 <tr key={pos.tokenMint} className="table-row">
@@ -135,6 +136,11 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
                         >
                           {displayName}
                         </a>
+                        {pos.prePeriod && (
+                          <span className="mt-0.5 inline-flex w-fit rounded border border-yellow-500/30 bg-yellow-500/10 px-1.5 py-0.5 text-[10px] font-medium text-yellow-500">
+                            Pre-period
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={() => copyToClipboard(pos.tokenMint)}
@@ -164,7 +170,14 @@ export function PositionsTable({ positions, isLoading }: PositionsTableProps) {
                     {pos.remainingTokens.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </td>
                   <td className="p-4 text-right text-sm text-theme-text-muted">
-                    {formatSOL(pos.totalCostBasis)} SOL
+                    {showAllTimeCostBasis ? (
+                      <div className="flex flex-col items-end">
+                        <span>{formatSOL(pos.allTimeCostBasis)} SOL</span>
+                        <span className="text-[10px] text-theme-text-muted">all-time</span>
+                      </div>
+                    ) : (
+                      `${formatSOL(pos.totalCostBasis)} SOL`
+                    )}
                   </td>
                   <td className="p-4 text-right text-sm text-theme-text-muted">
                     {formatSOL(pos.totalProceeds)} SOL

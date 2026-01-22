@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import type { Timeframe } from '@funeral-vision/shared';
 import { WalletInput } from './components/WalletInput';
 import { PnLSummaryCards } from './components/PnLSummaryCards';
@@ -14,11 +15,17 @@ import { ProfitableWallets } from './components/ProfitableWallets';
 import { useProfitableWallets } from './hooks/useProfitableWallets';
 import { useCatalogWallet } from './hooks/useCatalogWallet';
 import { useTheme } from './hooks/useTheme';
+import { useAuth } from './contexts/AuthContext';
 import { calculateFollowScores } from './api';
+import ProtectedRoute from './components/layout/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import PendingApprovalPage from './pages/PendingApprovalPage';
+import AdminPage from './pages/AdminPage';
 
 type ViewMode = 'catalog' | 'simulation' | 'single';
 
-function App() {
+function Dashboard() {
   const [viewMode, setViewMode] = useState<ViewMode>('catalog');
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [timeframe, setTimeframe] = useState<Timeframe>('all');
@@ -27,8 +34,10 @@ function App() {
   const [isEditingWallet, setIsEditingWallet] = useState(false);
   const [editName, setEditName] = useState('');
   const [editEmoji, setEditEmoji] = useState('');
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const { toggleTheme, isDark } = useTheme();
+  const { user, logout } = useAuth();
   const { data, isLoading, error, refetch } = useWalletPnL(walletAddress, timeframe);
   const { data: profile, isLoading: isProfileLoading } = useWalletProfile(walletAddress);
   const { wallet: catalogWallet, updateMeta } = useCatalogWallet(walletAddress);
@@ -141,8 +150,62 @@ function App() {
                 {isDark ? 'I am a psycho' : 'I am sane'}
               </button>
 
-              <div className="text-sm text-theme-text-secondary">
-                v1.0.0
+              {/* User Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-theme-bg-hover hover:brightness-110 transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-full bg-solana-purple/30 flex items-center justify-center text-sm font-medium">
+                    {user?.name?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                  <span className="text-sm text-theme-text-secondary hidden sm:inline">
+                    {user?.name || 'User'}
+                  </span>
+                </button>
+
+                {showUserMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setShowUserMenu(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-48 rounded-lg border border-theme-border bg-theme-bg-secondary shadow-lg z-20">
+                      <div className="p-3 border-b border-theme-border">
+                        <p className="text-sm font-medium text-theme-text-primary truncate">
+                          {user?.name}
+                        </p>
+                        <p className="text-xs text-theme-text-muted truncate">
+                          {user?.email}
+                        </p>
+                        {user?.walletLimit !== -1 && (
+                          <p className="text-xs text-theme-text-muted mt-1">
+                            Wallet limit: {user?.walletLimit}
+                          </p>
+                        )}
+                      </div>
+                      <div className="p-1">
+                        {(user?.role === 'admin' || user?.role === 'owner') && (
+                          <a
+                            href="/admin"
+                            className="block w-full px-3 py-2 text-left text-sm text-theme-text-secondary hover:bg-theme-bg-hover rounded transition-colors"
+                          >
+                            Admin Panel
+                          </a>
+                        )}
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            logout();
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-theme-bg-hover rounded transition-colors"
+                        >
+                          Sign out
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -334,6 +397,34 @@ function App() {
       {/* Status Log - always visible */}
       <StatusLog maxMessages={100} />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/pending" element={<PendingApprovalPage />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute requireRole={['admin', 'owner']}>
+            <AdminPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* Redirect any unknown routes to home */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 

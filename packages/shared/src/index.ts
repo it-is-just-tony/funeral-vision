@@ -36,6 +36,12 @@ export interface Position {
   winCount: number; // Number of profitable sells
   firstTradeAt: number;
   lastTradeAt: number;
+  // Optional all-time fields for timeframe views
+  allTimeTotalBought?: number;
+  allTimeTotalSold?: number;
+  allTimeCostBasis?: number;
+  allTimeProceeds?: number;
+  prePeriod?: boolean; // Indicates position was opened before the timeframe
 }
 
 // ============ PnL Analysis Types ============

@@ -233,6 +233,8 @@ export function generatePnLSummary(
     else if (periodRealizedPnL < 0) lossCount += periodSells.length - periodWinCount;
 
     // Create period-specific position
+    const openedBeforePeriod = timeframe !== 'all' && !!fullPosition && fullPosition.firstTradeAt < periodStart;
+
     periodPositions.push({
       walletAddress,
       tokenMint,
@@ -248,6 +250,11 @@ export function generatePnLSummary(
       winCount: periodWinCount,
       firstTradeAt: Math.min(...periodTrades.map(t => t.timestamp)),
       lastTradeAt: Math.max(...periodTrades.map(t => t.timestamp)),
+      allTimeTotalBought: fullPosition?.totalBought,
+      allTimeTotalSold: fullPosition?.totalSold,
+      allTimeCostBasis: fullPosition?.totalCostBasis,
+      allTimeProceeds: fullPosition?.totalProceeds,
+      prePeriod: openedBeforePeriod,
     });
   }
 

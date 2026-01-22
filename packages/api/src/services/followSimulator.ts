@@ -284,11 +284,12 @@ export function scoreWallet(
  * Score all wallets in the catalog
  */
 export function scoreAllWallets(
+  userId: string,
   delaySeconds: number = 5,
   slippageModel: SlippageModel = 'moderate'
 ): { scored: number; results: FollowSimulationResult[] } {
   // Get all wallet addresses from wallets table
-  const wallets = walletQueries.getAllWallets.all('default') as { address: string }[];
+  const wallets = walletQueries.getAllWallets.all(userId) as { address: string }[];
 
   const results: FollowSimulationResult[] = [];
   for (const wallet of wallets) {
