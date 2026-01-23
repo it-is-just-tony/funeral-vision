@@ -196,9 +196,18 @@ nano .env
 ```env
 # .env
 HELIUS_API_KEY=your_helius_api_key_here
+SOLANA_TRACKER_API_KEY=your_solanatracker_api_key_here
 PORT=3001
 WEB_PORT=3000
 DATABASE_PATH=./data/pnl.db
+
+# Auth (required unless you disable auth)
+JWT_SECRET=change-this-to-a-random-secret-min-32-chars
+OWNER_EMAIL=you@example.com
+
+# Optional: disable auth for single-user/private deployments
+AUTH_DISABLED=false
+VITE_AUTH_DISABLED=false
 ```
 
 **4. Start development servers**
