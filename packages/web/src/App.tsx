@@ -36,6 +36,7 @@ function Dashboard() {
   const [editName, setEditName] = useState('');
   const [editEmoji, setEditEmoji] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [useRealData, setUseRealData] = useState(true);
 
   const { toggleTheme, isDark } = useTheme();
   const { user, logout } = useAuth();
@@ -63,7 +64,7 @@ function Dashboard() {
   const handleCalculateScores = useCallback(async () => {
     try {
       setIsCalculatingScores(true);
-      if (!sessionStorage.getItem('fv_ohlcv_prefetch_3d')) {
+      if (useRealData && !sessionStorage.getItem('fv_ohlcv_prefetch_3d')) {
         try {
           await prefetchRecentOhlcv({ interval: '1m', days: 3 });
           sessionStorage.setItem('fv_ohlcv_prefetch_3d', String(Date.now()));
@@ -238,6 +239,8 @@ function Dashboard() {
             onSelect={handleSelectWallet}
             onCalculateScores={handleCalculateScores}
             isCalculating={isCalculatingScores}
+            useRealData={useRealData}
+            onToggleRealData={() => setUseRealData((v) => !v)}
           />
         )}
 

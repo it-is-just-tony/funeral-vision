@@ -301,9 +301,25 @@ wallet_follow_scores -- Simulated follow returns
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `HELIUS_API_KEY` | Yes | - | Your Helius API key |
+| `SOLANA_TRACKER_API_KEY` | No | - | SolanaTracker API key for OHLCV data (used in follow simulation) |
 | `PORT` | No | `3001` | API server port |
 | `WEB_PORT` | No | `3000` | Web frontend port |
 | `DATABASE_PATH` | No | `./data/pnl.db` | SQLite database path |
+| `JWT_SECRET` | Yes (when auth enabled) | - | JWT signing secret |
+| `OWNER_EMAIL` | Yes (when auth enabled) | - | First registered user with this email becomes owner |
+| `FRONTEND_URL` | No | `http://localhost:3000` | Frontend URL for OAuth redirects |
+| `GOOGLE_CLIENT_ID` | No | - | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | No | - | Google OAuth client secret |
+| `GOOGLE_CALLBACK_URL` | No | `http://localhost:3001/api/auth/google/callback` | Google OAuth callback URL |
+| `AUTH_DISABLED` | No | `false` | Disable auth and user management (single local admin mode) |
+| `VITE_AUTH_DISABLED` | No | `false` | Frontend toggle to hide login/admin UI (must match `AUTH_DISABLED`) |
+
+**Auth modes**
+- **Multi-user (default):** `AUTH_DISABLED=false` and `VITE_AUTH_DISABLED=false`.
+- **Single-user / private:** set both to `true` to bypass login and run as a local owner.
+
+**Simulation data**
+- OHLCV uses 1‑minute candles from SolanaTracker when enabled via the Simulation checkbox.
 
 ### Slippage Models
 

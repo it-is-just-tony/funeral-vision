@@ -7,6 +7,8 @@ interface Props {
   onSelect?: (address: string) => void;
   onCalculateScores?: () => Promise<void>;
   isCalculating?: boolean;
+  useRealData?: boolean;
+  onToggleRealData?: () => void;
 }
 
 type SortColumn = 'simulatedPnL' | 'realizedPnL' | 'followabilityRatio' | 'winRate' | 'avgTimeToFirstSellSec' | 'quickDumpRate';
@@ -56,7 +58,15 @@ function formatDuration(seconds: number | undefined): string {
   return `${(seconds / 3600).toFixed(1)}h`;
 }
 
-export function ProfitableWallets({ wallets, isLoading, onSelect, onCalculateScores, isCalculating }: Props) {
+export function ProfitableWallets({
+  wallets,
+  isLoading,
+  onSelect,
+  onCalculateScores,
+  isCalculating,
+  useRealData = true,
+  onToggleRealData,
+}: Props) {
   const [showExplainer, setShowExplainer] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn>('simulatedPnL');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -111,8 +121,17 @@ export function ProfitableWallets({ wallets, isLoading, onSelect, onCalculateSco
             </button>
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {isLoading && <span className="text-sm text-theme-text-secondary">Loading...</span>}
+          <label className="flex items-center gap-2 text-sm text-theme-text-secondary">
+            <input
+              type="checkbox"
+              checked={useRealData}
+              onChange={onToggleRealData}
+              className="h-4 w-4 rounded border-theme-border accent-solana-purple"
+            />
+            Use real OHLCV (1m)
+          </label>
           {onCalculateScores && (
             <button
               type="button"
