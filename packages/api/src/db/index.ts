@@ -315,6 +315,29 @@ db.exec(`
     fetched_at INTEGER NOT NULL
   );
 
+  -- Token OHLCV cache (SolanaTracker)
+  CREATE TABLE IF NOT EXISTS token_ohlcv (
+    token_mint TEXT NOT NULL,
+    interval TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    open REAL NOT NULL,
+    high REAL NOT NULL,
+    low REAL NOT NULL,
+    close REAL NOT NULL,
+    volume REAL NOT NULL,
+    PRIMARY KEY (token_mint, interval, timestamp)
+  );
+
+  -- Fetch ranges for OHLCV cache
+  CREATE TABLE IF NOT EXISTS ohlcv_fetch_ranges (
+    token_mint TEXT NOT NULL,
+    interval TEXT NOT NULL,
+    from_ts INTEGER NOT NULL,
+    to_ts INTEGER NOT NULL,
+    fetched_at INTEGER NOT NULL,
+    has_data INTEGER NOT NULL DEFAULT 1
+  );
+
   -- Indexes for performance
   CREATE INDEX IF NOT EXISTS idx_transactions_wallet ON transactions(wallet_address);
   CREATE INDEX IF NOT EXISTS idx_transactions_timestamp ON transactions(timestamp);
@@ -322,6 +345,8 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp);
   CREATE INDEX IF NOT EXISTS idx_trades_token ON trades(token_mint);
   CREATE INDEX IF NOT EXISTS idx_cost_basis_wallet_token ON cost_basis_lots(wallet_address, token_mint);
+  CREATE INDEX IF NOT EXISTS idx_ohlcv_token_interval_time ON token_ohlcv(token_mint, interval, timestamp);
+  CREATE INDEX IF NOT EXISTS idx_ohlcv_ranges_token_interval ON ohlcv_fetch_ranges(token_mint, interval);
 
   -- Token first-seen cache (built from stored raw transactions to avoid extra RPC/API hits)
   CREATE TABLE IF NOT EXISTS token_launches (
@@ -377,6 +402,14 @@ if (!columnNames.has('total_sol_volume')) {
 if (!columnNames.has('total_trades')) {
   db.exec('ALTER TABLE wallets ADD COLUMN total_trades INTEGER DEFAULT 0');
   console.log('📦 Added total_trades column to wallets table');
+}
+
+// Migration: add has_data to ohlcv_fetch_ranges if missing
+const ohlcvRangeColumns = db.prepare("PRAGMA table_info(ohlcv_fetch_ranges)").all() as { name: string }[];
+const ohlcvRangeColumnNames = new Set(ohlcvRangeColumns.map(c => c.name));
+if (!ohlcvRangeColumnNames.has('has_data')) {
+  db.exec('ALTER TABLE ohlcv_fetch_ranges ADD COLUMN has_data INTEGER NOT NULL DEFAULT 1');
+  console.log('📦 Added has_data column to ohlcv_fetch_ranges table');
 }
 
 if (!columnNames.has('quick_flip_rate')) {
@@ -547,6 +580,26 @@ export const tradeQueries = {
   getTradesByToken: db.prepare(`
     SELECT * FROM trades WHERE wallet_address = ? AND token_mint = ? ORDER BY timestamp ASC
   `),
+  getDistinctTokensForUserSince: db.prepare(`
+    SELECT DISTINCT t.token_mint AS token_mint
+    FROM trades t
+    JOIN wallets w ON w.address = t.wallet_address
+    WHERE w.user_id = ? AND t.timestamp >= ?
+  `),
+  getDistinctTokensForWalletSince: db.prepare(`
+    SELECT COUNT(DISTINCT t.token_mint) as total
+    FROM trades t
+    WHERE t.wallet_address = ? AND t.timestamp >= ?
+  `),
+  getCoveredTokensForWalletSince: db.prepare(`
+    SELECT COUNT(DISTINCT t.token_mint) as covered
+    FROM trades t
+    JOIN token_ohlcv c ON c.token_mint = t.token_mint
+    WHERE t.wallet_address = ?
+      AND t.timestamp >= ?
+      AND c.interval = ?
+      AND c.timestamp BETWEEN ? AND ?
+  `),
 };
 
 // Position queries
@@ -615,6 +668,33 @@ export const tokenQueries = {
     const placeholders = mints.map(() => '?').join(',');
     return db.prepare(`SELECT * FROM token_metadata WHERE mint IN (${placeholders})`).all(...mints);
   },
+};
+
+// OHLCV cache queries
+export const ohlcvQueries = {
+  insertCandle: db.prepare(`
+    INSERT OR REPLACE INTO token_ohlcv (token_mint, interval, timestamp, open, high, low, close, volume)
+    VALUES (@token_mint, @interval, @timestamp, @open, @high, @low, @close, @volume)
+  `),
+  getCandlesInRange: db.prepare(`
+    SELECT * FROM token_ohlcv
+    WHERE token_mint = ? AND interval = ? AND timestamp BETWEEN ? AND ?
+    ORDER BY timestamp ASC
+  `),
+  hasCoveringRange: db.prepare(`
+    SELECT 1 FROM ohlcv_fetch_ranges
+    WHERE token_mint = ? AND interval = ? AND from_ts <= ? AND to_ts >= ?
+      AND fetched_at >= ?
+    LIMIT 1
+  `),
+  getLatestRangeEnd: db.prepare(`
+    SELECT MAX(to_ts) as max_to FROM ohlcv_fetch_ranges
+    WHERE token_mint = ? AND interval = ?
+  `),
+  insertFetchRange: db.prepare(`
+    INSERT INTO ohlcv_fetch_ranges (token_mint, interval, from_ts, to_ts, fetched_at, has_data)
+    VALUES (@token_mint, @interval, @from_ts, @to_ts, @fetched_at, @has_data)
+  `),
 };
 
 // Token launch queries (first-seen cache)

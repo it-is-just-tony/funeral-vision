@@ -213,6 +213,30 @@ export async function calculateFollowScores(params: {
   return result.data;
 }
 
+/**
+ * Prefetch OHLCV for tokens traded in the last N days
+ */
+export async function prefetchRecentOhlcv(params: {
+  interval?: '1m' | '5m' | '15m' | '1h';
+  days?: number;
+} = {}): Promise<{ fetched: number; cached: number; total: number; empty?: number }> {
+  const response = await authFetch(`${API_BASE}/wallet/ohlcv/prefetch-recent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      interval: params.interval ?? '1m',
+      days: params.days ?? 3,
+    }),
+  });
+  const result: ApiResponse<{ fetched: number; cached: number; total: number; empty?: number }> = await response.json();
+
+  if (!result.success || !result.data) {
+    throw new Error(result.error || 'Failed to prefetch OHLCV');
+  }
+
+  return result.data;
+}
+
 // ============ CATALOG API ============
 
 import type { CatalogWallet, WalletImportPayload, AggregatedStats } from '@funeral-vision/shared';

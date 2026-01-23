@@ -176,6 +176,10 @@ export interface WalletRanking {
   simulatedPnL?: number;
   avgTimeToFirstSellSec?: number;
   quickDumpRate?: number;
+  // OHLCV coverage (for simulation window)
+  ohlcvCoveredTokens?: number;
+  ohlcvTotalTokens?: number;
+  ohlcvCoverageRatio?: number;
 }
 
 // ============ Transaction Types (from Helius) ============

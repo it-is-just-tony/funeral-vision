@@ -12,6 +12,7 @@ import { walletQueries, txQueries, tradeQueries, tokenQueries, userQueries, db }
 import { statusEmitter, type StatusEvent } from '../services/statusEmitter.js';
 import { buildWalletProfile } from '../services/profile.js';
 import { rankProfitableWallets } from '../services/discovery.js';
+import { prefetchOhlcvForTokens, type OhlcvInterval } from '../services/ohlcv.js';
 import { authenticate, requireApproved, checkWalletLimit } from '../middleware/auth.js';
 
 export const walletRouter = Router();
@@ -58,6 +59,121 @@ walletRouter.get('/status/events', (req: Request, res: Response) => {
     clearInterval(heartbeat);
     res.end();
   });
+});
+
+/**
+ * POST /api/wallet/ohlcv/prefetch
+ * Prefetch OHLCV candles for a list of tokens (cached)
+ */
+walletRouter.post('/ohlcv/prefetch', authenticate, requireApproved, async (req: Request, res: Response) => {
+  try {
+    const { tokenMints, interval = '1m', days = 3, timeFrom, timeTo } = req.body as {
+      tokenMints: string[];
+      interval?: OhlcvInterval;
+      days?: number;
+      timeFrom?: number;
+      timeTo?: number;
+    };
+
+    if (!Array.isArray(tokenMints) || tokenMints.length === 0) {
+      res.status(400).json({ success: false, error: 'tokenMints array is required' });
+      return;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const fromTs = timeFrom ?? Math.max(0, now - days * 24 * 60 * 60);
+    const toTs = timeTo ?? now;
+
+    const uniqueMints = Array.from(new Set(tokenMints)).slice(0, 1000);
+    const result = await prefetchOhlcvForTokens(uniqueMints, interval, fromTs, toTs);
+
+    res.json({
+      success: true,
+      data: {
+        interval,
+        fromTs,
+        toTs,
+        total: uniqueMints.length,
+        fetched: result.fetched,
+        cached: result.cached,
+      },
+    });
+  } catch (error) {
+    console.error('Error prefetching OHLCV:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * POST /api/wallet/ohlcv/prefetch-recent
+ * Prefetch OHLCV for tokens traded by the user in the last N days
+ */
+walletRouter.post('/ohlcv/prefetch-recent', authenticate, requireApproved, async (req: Request, res: Response) => {
+  try {
+    const { interval = '1m', days = 3 } = req.body as {
+      interval?: OhlcvInterval;
+      days?: number;
+    };
+
+    const now = Math.floor(Date.now() / 1000);
+    const fromTs = Math.max(0, now - days * 24 * 60 * 60);
+
+    const rows = tradeQueries.getDistinctTokensForUserSince.all(req.user!.id, fromTs) as { token_mint: string }[];
+    const tokenMints = rows.map(r => r.token_mint).slice(0, 1000);
+
+    console.log(`Prefetching OHLCV for ${tokenMints.length} tokens (interval=${interval}, days=${days})`);
+    statusEmitter.info(`Prefetching OHLCV for ${tokenMints.length} tokens`, {
+      address: 'ohlcv',
+      name: 'OHLCV Cache',
+      emoji: '📈',
+    });
+
+    const result = await prefetchOhlcvForTokens(
+      tokenMints,
+      interval,
+      fromTs,
+      now,
+      (current, total, mint) => {
+        if (current % 10 === 0 || current === total) {
+          console.log(`OHLCV cache progress: ${current}/${total}`);
+        }
+        statusEmitter.progress('OHLCV cache warm-up', current, total, {
+          address: mint || 'ohlcv',
+          name: 'OHLCV Cache',
+          emoji: '📈',
+        });
+      },
+      24 * 60 * 60 * 1000
+    );
+
+    res.json({
+      success: true,
+      data: {
+        interval,
+        fromTs,
+        toTs: now,
+        total: tokenMints.length,
+        fetched: result.fetched,
+        cached: result.cached,
+        empty: result.empty,
+      },
+    });
+
+    console.log(`OHLCV cache warm-up complete (${result.cached} cached, ${result.fetched} fetched, ${result.empty} empty)`);
+    statusEmitter.success(
+      `OHLCV cache warm-up complete (${result.cached} cached, ${result.fetched} fetched, ${result.empty} empty)`,
+      { address: 'ohlcv', name: 'OHLCV Cache', emoji: '📈' }
+    );
+  } catch (error) {
+    console.error('Error prefetching recent OHLCV:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 });
 
 /**

@@ -16,7 +16,7 @@ import { useProfitableWallets } from './hooks/useProfitableWallets';
 import { useCatalogWallet } from './hooks/useCatalogWallet';
 import { useTheme } from './hooks/useTheme';
 import { useAuth } from './contexts/AuthContext';
-import { calculateFollowScores } from './api';
+import { calculateFollowScores, prefetchRecentOhlcv } from './api';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -63,6 +63,14 @@ function Dashboard() {
   const handleCalculateScores = useCallback(async () => {
     try {
       setIsCalculatingScores(true);
+      if (!sessionStorage.getItem('fv_ohlcv_prefetch_3d')) {
+        try {
+          await prefetchRecentOhlcv({ interval: '1m', days: 3 });
+          sessionStorage.setItem('fv_ohlcv_prefetch_3d', String(Date.now()));
+        } catch (err) {
+          console.warn('OHLCV prefetch failed, continuing:', err);
+        }
+      }
       await calculateFollowScores({ delaySeconds: 5, slippageModel: 'moderate' });
       await refetchProfitable();
     } catch (err) {

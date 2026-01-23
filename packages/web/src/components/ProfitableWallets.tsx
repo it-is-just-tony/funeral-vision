@@ -26,7 +26,12 @@ Score interpretation:
 • < 0.2 = Unfollowable (likely farming copytrades)
 
 Quick Dump Rate shows % of tokens sold within 60s of buying.
-High quick dump + low follow score = likely copytrade farmer.`;
+High quick dump + low follow score = likely copytrade farmer.
+
+Data column shows OHLCV coverage for the last 3 days (1-minute resolution):
+• It counts how many traded tokens have 1-minute candles available
+• Format is covered/total (e.g., 3/4)
+• Low coverage means the simulation relied on limited real-market data for that wallet.`;
 
 function getFollowScoreColor(ratio: number | undefined): string {
   if (ratio === undefined) return 'text-theme-text-muted';
@@ -198,12 +203,15 @@ export function ProfitableWallets({ wallets, isLoading, onSelect, onCalculateSco
                   <SortIndicator column="quickDumpRate" />
                 </button>
               </th>
+              <th className="text-right p-4" title="OHLCV coverage for last 3 days (tokens with cached candles)">
+                Data
+              </th>
             </tr>
           </thead>
           <tbody>
             {sortedWallets.length === 0 && !isLoading && (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-theme-text-muted">
+                <td colSpan={8} className="p-8 text-center text-theme-text-muted">
                   No wallets with trade data yet. Import wallets and sync their data first.
                 </td>
               </tr>
@@ -255,6 +263,13 @@ export function ProfitableWallets({ wallets, isLoading, onSelect, onCalculateSco
                   </td>
                   <td className={`p-4 text-right ${(w.quickDumpRate ?? 0) > 0.3 ? 'pnl-negative' : 'text-theme-text-secondary'}`}>
                     {w.quickDumpRate !== undefined ? `${(w.quickDumpRate * 100).toFixed(0)}%` : '—'}
+                  </td>
+                  <td className="p-4 text-right text-theme-text-secondary">
+                    {w.ohlcvTotalTokens && w.ohlcvTotalTokens > 0 ? (
+                      <span title={`${w.ohlcvCoveredTokens ?? 0}/${w.ohlcvTotalTokens} tokens covered`}>
+                        {w.ohlcvCoveredTokens ?? 0}/{w.ohlcvTotalTokens}
+                      </span>
+                    ) : '—'}
                   </td>
                 </tr>
               );

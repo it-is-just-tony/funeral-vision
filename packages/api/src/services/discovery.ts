@@ -1,5 +1,5 @@
 import type { Timeframe, WalletRanking } from '@funeral-vision/shared';
-import { walletQueries, followScoreQueries } from '../db/index.js';
+import { walletQueries, followScoreQueries, tradeQueries } from '../db/index.js';
 
 interface RankingOptions {
   timeframe?: Timeframe;
@@ -50,6 +50,12 @@ export function rankProfitableWallets(
     limit = 20,
   }: RankingOptions = {}
 ): WalletRanking[] {
+  const now = Math.floor(Date.now() / 1000);
+  const intervalSeconds = 60;
+  const ohlcvWindowSeconds = 3 * 24 * 60 * 60;
+  const ohlcvFrom = now - ohlcvWindowSeconds;
+  const alignedFrom = Math.floor(ohlcvFrom / intervalSeconds) * intervalSeconds;
+  const alignedTo = Math.floor(now / intervalSeconds) * intervalSeconds;
   // Pull known wallets with cached stats
   const walletRows = walletQueries.getAllWallets.all(userId) as WalletRow[];
 
@@ -88,6 +94,19 @@ export function rankProfitableWallets(
       }
     }
 
+    const totalTokensRow = tradeQueries.getDistinctTokensForWalletSince.get(row.address, ohlcvFrom) as { total: number } | undefined;
+    const coveredTokensRow = tradeQueries.getCoveredTokensForWalletSince.get(
+      row.address,
+      ohlcvFrom,
+      '1m',
+      alignedFrom,
+      alignedTo
+    ) as { covered: number } | undefined;
+
+    const ohlcvTotalTokens = totalTokensRow?.total ?? 0;
+    const ohlcvCoveredTokens = coveredTokensRow?.covered ?? 0;
+    const ohlcvCoverageRatio = ohlcvTotalTokens > 0 ? ohlcvCoveredTokens / ohlcvTotalTokens : undefined;
+
     results.push({
       address: row.address,
       name: row.name,
@@ -103,6 +122,9 @@ export function rankProfitableWallets(
       simulatedPnL,
       avgTimeToFirstSellSec,
       quickDumpRate,
+      ohlcvCoveredTokens,
+      ohlcvTotalTokens,
+      ohlcvCoverageRatio,
     });
   }
 
