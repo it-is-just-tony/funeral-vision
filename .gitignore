@@ -48,3 +48,4 @@ packages/video/out/
 *.mp4
 *.webm
 *.mov
+!showcase.mp4
