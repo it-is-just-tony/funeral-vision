@@ -35,10 +35,7 @@ This is for the degens who'd rather spend money on questionable memecoins than m
 
 ## Showcase Video
 
-<video controls width="100%">
-  <source src="showcase.mp4" type="video/mp4">
-  Your browser does not support the video tag. <a href="showcase.mp4">Watch the video</a>.
-</video>
+![Showcase](showcase.gif)
 
 ### Wallet Catalog
 Track all your wallets in one place with PnL, win rate, and sync status.
