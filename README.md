@@ -16,6 +16,8 @@ Is it perfect? No. Does it work? Yes.
 
 This is for the degens who'd rather spend money on questionable memecoins than monthly subscriptions. You're welcome.
 
+If you feel like it you can send me some SOL: TonyCcPNBBwJhUjVxVc8WNWuC86yHwWUXMNe3gMAYJf
+
 ---
 
 ## Features
